@@ -20,6 +20,10 @@ credentials.*
 tmp/
 node_modules/
 
+# --- Skill 本地配置（含 key/凭证，不分享） ---
+# 示例文件 config.example.sh 会跟踪；填了真实值的 config.local.* 不进 git。
+.claude/skills/**/config.local.*
+
 # --- 原始来源数据：保留结构+示例，忽略真实数据 ---
 # 采用者放进 sources/ 的真实资料（私密聊天/文档）默认留在本地、不进 git，
 # 避免误传隐私。模板自带的脚手架（README、.gitkeep、明显虚构的 _example-* 示例）会被保留。

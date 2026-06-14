@@ -106,12 +106,24 @@ published_url:          # 仅 web/已发布时填写
 
 ## 7. 常用操作（非代码）
 
+- **拉取飞书数据**：用内置 `feishu-cli` 技能（基于官方 `lark-cli`）把单聊/群聊/文档拉进 `sources/feishu/<租户>/...`（见 §8）。
 - **归档 inbox**：读 `sources/inbox/` 里的新文件 → 判断来源 → 移动到对应来源目录 → 补 frontmatter。
 - **起草交付物**：依据 `sources:` 选定的底稿，在 `workstreams/<主题>/` 里打草稿；定稿移到 `deliverables/<去向>/`。
-- **配图（可选）**：若你的环境配置了生图技能/工具，可用它为交付物生成插图，存到 `assets/`，在文档里引用。**本模板不假设它存在。**
-- **发布 web**：见 §6，用你自配的发布命令。
+- **配图**：用内置 `ai-image` 技能为交付物生成插图，存到 `assets/` 再引用（需先配置 key/endpoint，见 §8）。
+- **回写飞书 / 发布 web**：飞书用 `feishu-cli` 回写并回填 `published_url`；web 见 §6 用你自配的发布命令。
+- **版本操作**：提交 / 撤销 / `.gitignore` 等参考 `git-notes` 技能（务必遵守本仓库隐私规则）。
 
-## 8. 让它成为你的（Make it yours）
+## 8. 内置技能（`.claude/skills/`）
+
+本模板自带三个技能，随仓库分享；Claude Code 会自动发现。**它们都不含任何密钥/账号**，采用者自带自己的凭证。
+
+| 技能 | 用途 | 采用者需配置 |
+| --- | --- | --- |
+| `feishu-cli` | 用官方 `lark-cli` 操作飞书：拉聊天/文档进 `sources/`，回写成品到飞书 | 自己的飞书应用：`npm i -g @larksuite/cli` → `lark-cli config init` → `lark-cli auth login`（凭证存 `~/.lark-cli`，仓库外） |
+| `ai-image` | 经 OpenAI 兼容接口生图（gpt-image-2 + 兜底），输出到 `assets/` | 环境变量 `AIPROXY_API_KEY` / `AIPROXY_ENDPOINT`（见技能内 `config.example.sh`，真实值写进被忽略的 `config.local.sh`） |
+| `git-notes` | git 操作速查 + 本仓库版本管理/隐私约定 | 无需配置 |
+
+## 9. 让它成为你的（Make it yours）
 
 本仓库是**可分享的模板**。采用后按此清单改造：
 
@@ -119,14 +131,15 @@ published_url:          # 仅 web/已发布时填写
 2. 在 `sources/feishu/` 下按你的真实**租户**建目录。
 3. 接入你自己的数据源/外部 Agent（飞书 Codex、导出脚本等），让它们按 §5 契约写入。
 4. 配置 §6 的 **Web 发布命令**。
-5. 如有需要，把你环境里的技能/连接器（生图、飞书/微信 MCP 等）记到这里。
+5. 配置内置技能（§8）：`feishu-cli` 登录你自己的飞书应用、`ai-image` 填入 key/endpoint。
 
-## 9. 敏感与隐私（重要）
+## 10. 敏感与隐私（重要）
 
 - `sources/` 含**私密聊天/文档**。本模板的 `.gitignore` **默认忽略 `sources/` 下的真实数据**（只跟踪目录结构、README 和 `_example-*` 示例），避免你误把隐私提交进 git。
 - 如确需版本化真实来源数据：自行放开 `.gitignore`，且**远端仓库必须设为私有**。
 - 未经明确意图，**不要**把原始来源内容贴给外部服务/公开链接。发布 web 交付物前确认其中不含私密信息。
 
-## 10. 环境能力（因人而异，不保证存在）
+## 11. 环境能力（因人而异）
 
-下列能力取决于**采用者各自的环境**，本模板不内置、不假设：飞书/Lark 或微信的连接器/MCP、生图技能、特定静态托管账号。用之前先确认它在你的环境里可用；不可用就走手动/导出路径。
+- **随模板自带（见 §8）**：`feishu-cli` / `ai-image` / `git-notes` 三个技能已在 `.claude/skills/`，但前两个需采用者**自带凭证**（飞书应用登录、生图 key/endpoint）才能真正调用。
+- **不随模板、需你环境另配**：微信连接器/MCP、特定静态托管账号（CloudBase/Vercel/…）等。用之前先确认在你的环境可用；不可用就走手动/导出路径。
