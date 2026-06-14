@@ -1,6 +1,6 @@
-# Co-Worker 工作空间（模板）
+# Workspace of Super Hero
 
-一个**个人协作工作空间**模板：把多来源的原始资料归档进来，让 AI Agent（Claude Code / Codex 等）帮你整理、合成、产出交付物。**这不是一个写代码的项目**——没有 build/test，"工作"指的是收资料、做研究、写东西、配图、发布。
+一个给**超级个体**使用的个人 Co-Worker 工作空间模板：把多来源的原始资料归档进来，让 AI Agent（Claude Code / Codex 等）帮你整理、合成、产出交付物。**这不是一个写代码的项目**——没有 build/test，"工作"指的是收资料、做研究、写东西、配图、发布。
 
 ## 心智模型
 
@@ -13,7 +13,7 @@ sources/  ──加工──▶  deliverables/
 
 ## 目录
 
-- **`sources/`** — 原始数据，按来源分类：`feishu/`（多租户单聊·群聊·文档）、`getnote/`（得到/Get笔记）、`wechat/`、`mp/`（公众号）、`social/`、`knowledge/`、`inbox/`（临时中转）。只读为主。
+- **`sources/`** — 原始数据，按来源分类：`feishu/`（多租户单聊·群聊·文档）、`getnote/`（得到/Get笔记）、`wechat/`、`mp/`（公众号）、`social/`（含小宇宙等社媒/播客）、`knowledge/`、`inbox/`（临时中转）。只读为主。
 - **`deliverables/`** — 产出：`feishu/`（回写飞书）、`local/`（本地终稿）、`web/`（线上 HTML）。
 - **`workstreams/`** — 进行中的主题工作台。
 - **`assets/`** — 图片等素材。
