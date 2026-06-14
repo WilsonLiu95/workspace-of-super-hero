@@ -1,0 +1,32 @@
+# --- OS / 编辑器垃圾 ---
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# --- 密钥/凭据：永不提交 ---
+.env
+.env.*
+*.env
+*.key
+*.pem
+secrets.*
+credentials.*
+
+# --- 临时/依赖 ---
+.tmp/
+tmp/
+node_modules/
+
+# --- 原始来源数据：保留结构+示例，忽略真实数据 ---
+# 采用者放进 sources/ 的真实资料（私密聊天/文档）默认留在本地、不进 git，
+# 避免误传隐私。模板自带的脚手架（README、.gitkeep、明显虚构的 _example-* 示例）会被保留。
+# 如确需版本化真实来源数据：自行删除/调整下面规则，且远端仓库必须设为私有。
+sources/**
+!sources/**/
+!sources/**/README.md
+!sources/**/.gitkeep
+!sources/**/_example-*
+!sources/**/_example-*/**
