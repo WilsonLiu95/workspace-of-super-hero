@@ -13,10 +13,15 @@ sources/  ──加工──▶  deliverables/
 
 ## 目录
 
-- **`sources/`** — 原始数据，按来源分类：`feishu/`（多租户单聊·群聊·文档）、`wechat/`、`mp/`（公众号）、`social/`、`knowledge/`、`inbox/`（临时中转）。只读为主。
+- **`sources/`** — 原始数据，按来源分类：`feishu/`（多租户单聊·群聊·文档）、`getnote/`（得到/Get笔记）、`wechat/`、`mp/`（公众号）、`social/`、`knowledge/`、`inbox/`（临时中转）。只读为主。
 - **`deliverables/`** — 产出：`feishu/`（回写飞书）、`local/`（本地终稿）、`web/`（线上 HTML）。
 - **`workstreams/`** — 进行中的主题工作台。
 - **`assets/`** — 图片等素材。
+- **`scripts/`** — 自动化脚本（拉取各来源、生图），Claude / Codex / 定时器同源复用。
+
+## 双 Agent
+
+`scripts/` 是单一实现层。Claude 读 `.claude/skills/`，Codex 读 [`AGENTS.md`](./AGENTS.md)，定时器调 `scripts/pull-all.sh`——三方调用同一批脚本，不分叉。
 
 ## 怎么用
 

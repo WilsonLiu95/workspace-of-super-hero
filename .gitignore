@@ -7,9 +7,10 @@ Thumbs.db
 .vscode/
 
 # --- 密钥/凭据：永不提交 ---
+# 真实凭证放 .env.local（pull-*.sh 会自动 source）；.env.example 是模板，保留跟踪。
 .env
-.env.*
-*.env
+.env.local
+.env.*.local
 *.key
 *.pem
 secrets.*
@@ -19,10 +20,12 @@ credentials.*
 .tmp/
 tmp/
 node_modules/
+__pycache__/
+*.pyc
 
-# --- Skill 本地配置（含 key/凭证，不分享） ---
-# 示例文件 config.example.sh 会跟踪；填了真实值的 config.local.* 不进 git。
-.claude/skills/**/config.local.*
+# --- 本机生成的 Agent 镜像（superpowers 等会把 .claude/skills 镜像到 .agents/）---
+# 这是本地工具生成的派生物，会漂移；模板的可移植跨 Agent 方案是 .claude/skills + AGENTS.md + scripts/。
+.agents/
 
 # --- 原始来源数据：保留结构+示例，忽略真实数据 ---
 # 采用者放进 sources/ 的真实资料（私密聊天/文档）默认留在本地、不进 git，

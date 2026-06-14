@@ -1,44 +1,64 @@
 # AGENTS.md
 
-本文件供**非 Claude 的 Agent**（如接到飞书里的 Codex、各类机器人/脚本）读取。
-完整约定见 [`CLAUDE.md`](./CLAUDE.md)；本文件只摘录你最需要遵守的**写入契约**。
+本文件供 **Codex 及其它非 Claude Agent** 读取（Codex 把 AGENTS.md 作为项目入口）。
+它和 Claude 的 `.claude/skills/` 指向**同一套实现**（`scripts/`）——实现单一、不分叉。
+完整工作区约定见 [`CLAUDE.md`](./CLAUDE.md)。
 
 ## 这是什么
 
-一个个人 Co-Worker 工作空间，不是代码仓库。数据流：
-`sources/`（原始数据，按来源分类）→ 加工 → `deliverables/`（交付物）。
+个人 Co-Worker 工作空间，不是代码仓库。数据流：
+`sources/`（原始数据，按来源分类）→ 加工 → `deliverables/`（飞书文档 / 本地文档 / 线上 HTML）。
 
-## 你把数据写到哪里
+## 能力都在 scripts/（你直接跑）
 
-把抓取/同步来的原始数据写入 `sources/`，**按来源分类**：
+| 你要做的事 | 跑这个 | 说明 |
+| --- | --- | --- |
+| 拉飞书会话/消息 | `scripts/pull-feishu.sh` | 需 `lark-cli` 已登录 |
+| 拉得到/Get笔记 | `scripts/pull-getnote.sh` | Biji OpenAPI |
+| 拉微信 | `scripts/pull-wechat.sh` | 需 `chatlog server` 在跑 |
+| 一键拉全部 | `scripts/pull-all.sh` | 编排器，供定时器调用 |
+| 生成图片 | `python3 scripts/generate-image.py "<prompt>" -o assets` | OpenAI 兼容生图 |
+
+每个能力的详细说明（前置/参数/排错）见对应 `.claude/skills/<name>/SKILL.md`——
+那是标准 Agent Skill 格式（`name`+`description`+正文），你可以直接读：
+`feishu-cli` / `get-biji` / `wechat-chatlog` / `ai-image` / `pull-sources`。
+
+## 凭证
+
+统一放仓库根 `.env.local`（见 `.env.example`，已被 `.gitignore` 忽略）。`scripts/pull-*` 会自动 `source` 它。
+飞书凭证由 `lark-cli` 自管（`~/.lark-cli`）。**不要把任何 key 写进仓库。**
+
+## 你把拉来的数据写到哪（写入契约）
+
+写入 `sources/`，**按来源分类**，只追加不改写：
 
 | 来源 | 路径 |
 | --- | --- |
 | 飞书（多租户） | `sources/feishu/<租户>/<dm\|groups\|docs>/` |
+| 得到/Get笔记 | `sources/getnote/` |
 | 微信 | `sources/wechat/` |
-| 公众号 | `sources/mp/` |
-| 其他社媒 | `sources/social/` |
-| 个人知识库 | `sources/knowledge/` |
-| 不确定/临时 | `sources/inbox/`（之后由人或 Agent 归档） |
+| 公众号 / 其它社媒 / 知识库 | `sources/{mp,social,knowledge}/` |
+| 不确定/临时 | `sources/inbox/`（之后归档） |
 
-## 命名与元数据（必须遵守）
-
-- 文件名：`YYYY-MM-DD_<slug>.md`
-- 每个文件以 YAML frontmatter 开头：
+命名 `YYYY-MM-DD_<slug>.md`，并带 frontmatter：
 
 ```yaml
 ---
-source: feishu          # feishu | wechat | mp | social | knowledge | inbox
-tenant: <租户名>         # 多租户来源（如飞书）必填，其余可省
+source: feishu          # feishu | getnote | wechat | mp | social | knowledge | inbox
+tenant: <租户名>         # 多租户来源（飞书）必填
 channel: <会话/群/作者>
-type: dm                # dm | group | doc | article | note
+type: dm                # dm | group | doc | note | article
 captured: 2026-06-14
 ---
 ```
 
+## 定时
+
+`scripts/pull-all.sh` 可挂到 Codex `automation.toml`（cron 风格）、Claude `/schedule` 或本地 `cron`。
+示例与 rrule 见 [`scripts/README.md`](./scripts/README.md) 的「定时触发」。当前未绑定任何触发器。
+
 ## 红线
 
-- **只追加，不改写。** 不要修改或删除 `sources/` 里已有的原始文件。
-- **不要碰 `deliverables/`**（那是产出区）。
-- 不确定来源/分类时，写进 `sources/inbox/` 即可。
-- `sources/` 含私密数据；不要外泄。
+- 只追加，不改写/删除 `sources/` 已有原始文件；不要碰 `deliverables/`（产出区）。
+- `sources/` 含私密数据（默认不进 git）；不要外泄。
+- 写操作（发飞书消息、建/改文档）前先 `--dry-run`。

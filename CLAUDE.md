@@ -21,19 +21,21 @@ sources/        deliverables/
         (进行中的工作台：草稿、计划、合成中间产物)
 ```
 
-- **`sources/`** 装各种来源的**原始数据**：飞书（多租户的单聊/群聊/文档）、微信、公众号、其他社媒、个人知识库，以及临时丢东西的 `inbox/`。这些可能由你手动放入，也可能由**外部 Agent 主动写入**（例如一个接到飞书里的 Codex/机器人）。
+- **`sources/`** 装各种来源的**原始数据**：飞书（多租户的单聊/群聊/文档）、得到/Get笔记、微信、公众号、其他社媒、个人知识库，以及临时丢东西的 `inbox/`。可由你手动放入，也可由 `scripts/pull-*` 或**外部 Agent**（如接到飞书里的 Codex）主动写入。
 - **`deliverables/`** 装你/Agent **产出的成果**：要回写飞书的文档、本地终稿、要发布到线上的 HTML。
 - **`workstreams/`** 是**进行中的工作台**：某个主题/任务的草稿、提纲、合成中间产物，定稿后再落到 `deliverables/`。
 - **`assets/`** 存图片等**素材**，被交付物引用。
+- **`scripts/`** 是**单一实现层**：拉取/生图等自动化脚本，Claude 技能、Codex（`AGENTS.md`）、定时器都调它（见 §8）。
 
 ## 2. 顶层结构
 
 | 目录 | 用途 | 读写 |
 | --- | --- | --- |
-| `sources/` | 原始数据，按来源分类 | **只读为主 / 仅追加**，勿改写删除 |
+| `sources/` | 原始数据，按来源分类（feishu / getnote / wechat / mp / social / knowledge / inbox） | **只读为主 / 仅追加**，勿改写删除 |
 | `deliverables/` | 交付物（feishu / local / web） | 产出区 |
 | `workstreams/` | 进行中的主题工作台 | 草稿区 |
 | `assets/` | 图片等素材 | 按需 |
+| `scripts/` | 自动化与可复用脚本（agent 无关，单一实现） | 见 `scripts/README.md` |
 
 每个目录下都有 `README.md` 说明该区约定，先读它再动手。
 
@@ -51,7 +53,7 @@ sources/        deliverables/
 
 ```yaml
 ---
-source: feishu          # feishu | wechat | mp | social | knowledge | inbox
+source: feishu          # feishu | getnote | wechat | mp | social | knowledge | inbox
 tenant: <租户名>         # 仅 feishu 等多租户来源需要；其余可省略
 channel: <会话/群/作者>  # 单聊对象、群名、公众号名、作者等
 type: dm                # dm | group | doc | article | note
@@ -106,22 +108,25 @@ published_url:          # 仅 web/已发布时填写
 
 ## 7. 常用操作（非代码）
 
-- **拉取飞书数据**：用内置 `feishu-cli` 技能（基于官方 `lark-cli`）把单聊/群聊/文档拉进 `sources/feishu/<租户>/...`（见 §8）。
+- **拉取来源**：`scripts/pull-all.sh`（或 `pull-feishu`/`pull-getnote`/`pull-wechat`）把各来源最新内容拉进 `sources/`（见 §8、`pull-sources` 技能）。
 - **归档 inbox**：读 `sources/inbox/` 里的新文件 → 判断来源 → 移动到对应来源目录 → 补 frontmatter。
 - **起草交付物**：依据 `sources:` 选定的底稿，在 `workstreams/<主题>/` 里打草稿；定稿移到 `deliverables/<去向>/`。
-- **配图**：用内置 `ai-image` 技能为交付物生成插图，存到 `assets/` 再引用（需先配置 key/endpoint，见 §8）。
+- **配图**：用内置 `ai-image` 技能（`scripts/generate-image.py`）为交付物生成插图，存到 `assets/` 再引用（需配置 key，见 §8）。
 - **回写飞书 / 发布 web**：飞书用 `feishu-cli` 回写并回填 `published_url`；web 见 §6 用你自配的发布命令。
-- **版本操作**：提交 / 撤销 / `.gitignore` 等参考 `git-notes` 技能（务必遵守本仓库隐私规则）。
 
-## 8. 内置技能（`.claude/skills/`）
+## 8. 内置技能与脚本（双 Agent 同源）
 
-本模板自带三个技能，随仓库分享；Claude Code 会自动发现。**它们都不含任何密钥/账号**，采用者自带自己的凭证。
+**实现单一**：真正干活的逻辑在 `scripts/`；Claude 的 `.claude/skills/`、Codex 的 `AGENTS.md`、定时器都**调同一批脚本**，不分叉。Claude 会自动发现 `.claude/skills/`（标准 Agent Skill 格式，Codex 也能直接读这些 `SKILL.md`）。**均不含任何密钥/账号**，采用者自带凭证（统一放仓库根 `.env.local`，见 `.env.example`）。
 
-| 技能 | 用途 | 采用者需配置 |
+| 技能 | 实现脚本 | 采用者需配置 |
 | --- | --- | --- |
-| `feishu-cli` | 用官方 `lark-cli` 操作飞书：拉聊天/文档进 `sources/`，回写成品到飞书 | 自己的飞书应用：`npm i -g @larksuite/cli` → `lark-cli config init` → `lark-cli auth login`（凭证存 `~/.lark-cli`，仓库外） |
-| `ai-image` | 经 OpenAI 兼容接口生图（gpt-image-2 + 兜底），输出到 `assets/` | 环境变量 `AIPROXY_API_KEY` / `AIPROXY_ENDPOINT`（见技能内 `config.example.sh`，真实值写进被忽略的 `config.local.sh`） |
-| `git-notes` | git 操作速查 + 本仓库版本管理/隐私约定 | 无需配置 |
+| `pull-sources` | `scripts/pull-all.sh` | 见下各来源 |
+| `feishu-cli` | `scripts/pull-feishu.sh` + `lark-cli` | `npm i -g @larksuite/cli` → `lark-cli config init` → `auth login`（凭证存 `~/.lark-cli`） |
+| `get-biji`（得到/Get笔记） | `scripts/pull-getnote.sh` + `scripts/lib/get_biji.py` | `GET_BIJI_API_KEY` / `GET_BIJI_CLIENT_ID`（可选 `GET_BIJI_DEFAULT_TOPIC_ID`） |
+| `wechat-chatlog` | `scripts/pull-wechat.sh` + `chatlog` | 装 `chatlog`，跑 `chatlog server` |
+| `ai-image` | `scripts/generate-image.py` | `AIPROXY_API_KEY` / `AIPROXY_BASE_URL` |
+
+**定时**：把 `scripts/pull-all.sh` 挂到 Codex `automation.toml` / Claude `/schedule` / 本地 `cron`，示例见 `scripts/README.md`。当前未绑定触发器。
 
 ## 9. 让它成为你的（Make it yours）
 
@@ -131,7 +136,8 @@ published_url:          # 仅 web/已发布时填写
 2. 在 `sources/feishu/` 下按你的真实**租户**建目录。
 3. 接入你自己的数据源/外部 Agent（飞书 Codex、导出脚本等），让它们按 §5 契约写入。
 4. 配置 §6 的 **Web 发布命令**。
-5. 配置内置技能（§8）：`feishu-cli` 登录你自己的飞书应用、`ai-image` 填入 key/endpoint。
+5. `cp .env.example .env.local` 填入各来源凭证（§8）；飞书另需 `lark-cli auth login`、微信另需 `chatlog server`。
+6. 如需每日自动拉取，把 `scripts/pull-all.sh` 挂到定时器（见 `scripts/README.md`）。
 
 ## 10. 敏感与隐私（重要）
 
@@ -141,5 +147,5 @@ published_url:          # 仅 web/已发布时填写
 
 ## 11. 环境能力（因人而异）
 
-- **随模板自带（见 §8）**：`feishu-cli` / `ai-image` / `git-notes` 三个技能已在 `.claude/skills/`，但前两个需采用者**自带凭证**（飞书应用登录、生图 key/endpoint）才能真正调用。
-- **不随模板、需你环境另配**：微信连接器/MCP、特定静态托管账号（CloudBase/Vercel/…）等。用之前先确认在你的环境可用；不可用就走手动/导出路径。
+- **随模板自带（见 §8）**：`pull-sources` / `feishu-cli` / `get-biji` / `wechat-chatlog` / `ai-image` 五个技能 + `scripts/`，随仓库分享。但都需采用者**自带凭证/工具**（飞书登录、Biji key、chatlog、生图 key）才能真正调用。
+- **不随模板、需你环境另配**：特定静态托管账号（CloudBase/Vercel/…）、`chatlog`/`lark-cli` 等二进制的安装。用之前先确认在你的环境可用；不可用就走手动/导出路径。

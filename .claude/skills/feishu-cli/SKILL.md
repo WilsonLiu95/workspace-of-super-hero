@@ -34,6 +34,8 @@ lark-cli doctor                   # 体检：配置 / 鉴权 / 连通性
 
 落盘遵循本工作区契约（见 `sources/feishu/README.md`）：路径 `sources/feishu/<租户>/<dm|groups|docs>/`，文件名 `YYYY-MM-DD_<slug>.md`，并补 source frontmatter（`source: feishu` / `tenant` / `channel` / `type` / `captured`）。
 
+**批量归档（自动化）**：`scripts/pull-feishu.sh` 已封装"列会话 → 拉窗口内消息 → 落 `sources/feishu/<租户>/`"，供定时器/Codex 复用（`FEISHU_TENANT`/`FEISHU_SINCE_DAYS` 见 `.env.example`）。下面是**交互式**精细操作：
+
 **单聊 / 群聊消息（im）**
 
 ```bash

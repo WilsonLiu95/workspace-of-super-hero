@@ -2,12 +2,13 @@
 """AI image generation via an OpenAI-compatible image endpoint.
 
 Config comes from environment variables — NO secrets are baked in, so this file
-is safe to commit and share. Set these before running (see config.example.sh):
+is safe to commit and share. Set these before running (see ../.env.example):
 
   AIPROXY_API_KEY        (required)  Bearer token for the endpoint
-  AIPROXY_ENDPOINT       (required)  full images URL, e.g.
-                                     https://<host>/v1/images/generations
-                                     comma-separate to add fallbacks (tried in order)
+  AIPROXY_BASE_URL       (required)  host root, e.g. https://<host>
+                                     (script appends /v1/images/generations)
+  AIPROXY_ENDPOINT       (optional)  full images URL override; comma-separate
+                                     for fallbacks (tried in order). Wins over BASE_URL.
   AIPROXY_MODEL          (optional)  primary model, default gpt-image-2
   AIPROXY_FALLBACK_MODEL (optional)  fallback on 429/5xx, default gemini-3.1-flash-image
 
@@ -30,7 +31,10 @@ FALLBACK_MODEL = os.environ.get("AIPROXY_FALLBACK_MODEL", "gemini-3.1-flash-imag
 
 def _endpoints() -> List[str]:
     raw = os.environ.get("AIPROXY_ENDPOINT", "").strip()
-    return [e.strip() for e in raw.split(",") if e.strip()]
+    if raw:
+        return [e.strip() for e in raw.split(",") if e.strip()]
+    base = os.environ.get("AIPROXY_BASE_URL", "").strip().rstrip("/")
+    return [f"{base}/v1/images/generations"] if base else []
 
 
 def _call_api(prompt: str, n: int, model: str, size: Optional[str], api_key: str,
@@ -82,9 +86,8 @@ def generate(prompt: str, n: int, model: str, size: Optional[str], out_dir: Path
     endpoints = _endpoints()
     if not endpoints:
         sys.stderr.write(
-            "[ai-image] AIPROXY_ENDPOINT is not set. Point it at your image "
-            "endpoint, e.g. https://<host>/v1/images/generations "
-            "(see config.example.sh).\n"
+            "[ai-image] No endpoint configured. Set AIPROXY_BASE_URL=https://<host> "
+            "(or AIPROXY_ENDPOINT for a full URL). See ../.env.example.\n"
         )
         sys.exit(2)
 
