@@ -18,10 +18,15 @@
 | 拉微信 | `scripts/pull-wechat.sh` | 需 `chatlog server` 在跑 |
 | 一键拉全部 | `scripts/pull-all.sh` | 编排器，供定时器调用 |
 | 生成图片 | `python3 scripts/generate-image.py "<prompt>" -o assets` | OpenAI 兼容生图 |
+| 导出公众号文章 | `.claude/skills/wechat-exporter/scripts/`（扫码）→ `sources/mp/` | 交互式，需用户扫码 |
+| 拉小宇宙播客 | `.claude/skills/xiaoyuzhou/xiaoyuzhou.py`（扫码）→ `sources/social/` | 交互式，需用户扫码 |
 
 每个能力的详细说明（前置/参数/排错）见对应 `.claude/skills/<name>/SKILL.md`——
 那是标准 Agent Skill 格式（`name`+`description`+正文），你可以直接读：
-`feishu-cli` / `get-biji` / `wechat-chatlog` / `ai-image` / `pull-sources`。
+`feishu-cli` / `get-biji` / `wechat-chatlog` / `ai-image` / `pull-sources` / `wechat-exporter` / `xiaoyuzhou`。
+
+> 公众号/小宇宙是**交互式扫码**技能：生成二维码 → 展示给用户 → 等用户扫码确认 → 再继续。
+> 不要塞进无人值守的定时任务。
 
 ## 凭证
 

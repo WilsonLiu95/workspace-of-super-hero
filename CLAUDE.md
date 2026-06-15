@@ -116,17 +116,17 @@ published_url:          # 仅 web/已发布时填写
 
 ## 8. 内置技能与脚本（双 Agent 同源）
 
-**实现单一**：脚本化来源的真正逻辑在 `scripts/`；Claude 的 `.claude/skills/`、Codex 的 `AGENTS.md`、定时器都**调同一批脚本**，不分叉。另有少量规则型 Skill 用来约束链接/RSS/导出归档。Claude 会自动发现 `.claude/skills/`（标准 Agent Skill 格式，Codex 也能直接读这些 `SKILL.md`）。**均不含任何密钥/账号**，采用者自带凭证（统一放仓库根 `.env.local`，见 `.env.example`）。
+**实现单一**：脚本化来源的真正逻辑在 `scripts/`；Claude 的 `.claude/skills/`、Codex 的 `AGENTS.md`、定时器都**调同一批脚本**，不分叉。另有两个**交互式按需**技能（`wechat-exporter` 公众号、`xiaoyuzhou` 小宇宙），自带脚本、需扫码登录，不纳入每日 `pull-all`。Claude 会自动发现 `.claude/skills/`（标准 Agent Skill 格式，Codex 也能直接读这些 `SKILL.md`）。**均不含任何密钥/账号**，采用者自带凭证（统一放仓库根 `.env.local`，见 `.env.example`）。
 
 | 技能 | 实现脚本 | 采用者需配置 |
 | --- | --- | --- |
 | `pull-sources` | `scripts/pull-all.sh` | 见下各来源 |
 | `feishu-cli` | `scripts/pull-feishu.sh` + `lark-cli` | `npm i -g @larksuite/cli` → `lark-cli config init` → `auth login`（凭证存 `~/.lark-cli`） |
 | `get-biji`（得到/Get笔记） | `scripts/pull-getnote.sh` + `scripts/lib/get_biji.py` | `GET_BIJI_API_KEY` / `GET_BIJI_CLIENT_ID`（可选 `GET_BIJI_DEFAULT_TOPIC_ID`） |
-| `wechat-chatlog` | `scripts/pull-wechat.sh` + `chatlog` | 装 `chatlog`，跑 `chatlog server` |
-| `wechat-mp`（微信公众号） | 规则型归档入口（链接/HTML/PDF/Markdown/后台导出） | 用户提供链接、导出文件或明确授权的数据源 |
-| `xiaoyuzhou-podcast`（小宇宙） | 规则型归档入口（单集/节目/RSS/导出） | 用户提供单集链接、节目链接、RSS 或导出文件 |
+| `wechat-chatlog`（微信聊天） | `scripts/pull-wechat.sh` + `chatlog` | 装 `chatlog`，跑 `chatlog server` |
 | `ai-image` | `scripts/generate-image.py` | `AIPROXY_API_KEY` / `AIPROXY_BASE_URL` |
+| `wechat-exporter`（微信公众号·扫码） | 技能内 `scripts/`（登录公众平台）→ `sources/mp/` | `pip install requests openpyxl`；交互式 |
+| `xiaoyuzhou`（小宇宙播客·扫码） | 技能内 `xiaoyuzhou.py`（登录）→ `sources/social/` | `pip install requests qrcode pillow`；`XIAOYUZHOU_OUTPUT_DIR` |
 
 **定时**：把 `scripts/pull-all.sh` 挂到 Codex `automation.toml` / Claude `/schedule` / 本地 `cron`，示例见 `scripts/README.md`。当前未绑定触发器。
 
@@ -149,5 +149,5 @@ published_url:          # 仅 web/已发布时填写
 
 ## 11. 环境能力（因人而异）
 
-- **随模板自带（见 §8）**：`pull-sources` / `feishu-cli` / `get-biji` / `wechat-chatlog` / `wechat-mp` / `xiaoyuzhou-podcast` / `ai-image` 七个技能 + `scripts/`，随仓库分享。但都需采用者**自带凭证/工具或数据源**（飞书登录、Biji key、chatlog、公众号链接/导出、小宇宙链接/RSS、生图 key）才能真正调用。
+- **随模板自带（见 §8）**：`pull-sources` / `feishu-cli` / `get-biji` / `wechat-chatlog` / `wechat-exporter` / `xiaoyuzhou` / `ai-image` 七个技能 + `scripts/`，随仓库分享。但都需采用者**自带凭证/工具**（飞书登录、Biji key、chatlog、公众号/小宇宙扫码登录、生图 key）才能真正调用。
 - **不随模板、需你环境另配**：特定静态托管账号（CloudBase/Vercel/…）、`chatlog`/`lark-cli` 等二进制的安装。用之前先确认在你的环境可用；不可用就走手动/导出路径。
