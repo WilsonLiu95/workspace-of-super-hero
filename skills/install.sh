@@ -140,10 +140,9 @@ download_and_extract(){   # $1=ref ; stdout=解压出的顶层目录绝对路径
   tmp="$(mktemp -d)"
   if [ "$USE_GITEE" = 1 ] && [ -n "$GITEE_OWNER_REPO" ]; then
     url="$GITEE_BASE/$GITEE_OWNER_REPO/repository/archive/$ref.tar.gz"
-  elif [ "$ref" = "$DEFAULT_BRANCH" ]; then
-    url="$CODELOAD_GH/$GH_OWNER_REPO/tar.gz/refs/heads/$ref"
   else
-    url="$CODELOAD_GH/$GH_OWNER_REPO/tar.gz/refs/tags/$ref"
+    # 裸 tar.gz/<ref> 同时支持 分支 / tag / commit SHA（codeload 三者皆 200），无需区分 ref 类型
+    url="$CODELOAD_GH/$GH_OWNER_REPO/tar.gz/$ref"
   fi
   log "下载 $url"
   curl -fsSL "$url" -o "$tmp/archive.tgz" 2>/dev/null || die "下载失败（ref=$ref 可能不存在）：$url"
