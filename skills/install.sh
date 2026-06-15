@@ -77,8 +77,10 @@ fetch_registry(){
 }
 
 # 本地优先：如果脚本旁边就有 registry.json（在本仓库里跑），直接用，省一次网络。
-SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SELF_DIR/registry.json" ] && [ -z "$REF_OVERRIDE" ]; then
+# 经 curl|bash 管道执行时没有脚本文件，BASH_SOURCE[0] 未设 → set -u 会炸；回退到 $0 并容错。
+SELF_SRC="${BASH_SOURCE[0]:-${0:-}}"
+SELF_DIR="$(cd "$(dirname "$SELF_SRC")" 2>/dev/null && pwd || true)"
+if [ -n "$SELF_DIR" ] && [ -f "$SELF_DIR/registry.json" ] && [ -z "$REF_OVERRIDE" ]; then
   REGISTRY="$(cat "$SELF_DIR/registry.json")"
 else
   REGISTRY="$(fetch_registry)"
