@@ -39,4 +39,13 @@ write_note() {
 load_local_env() {
   local f="$WORKSPACE_ROOT/.env.local"
   if [ -f "$f" ]; then set -a; . "$f"; set +a; log "已加载 $f"; fi
+  # 多租户：设 TENANT=<名字> 时，在默认 .env.local 之上叠加 .env.<名字>.local
+  #（凭证写在 .env 里的来源——钉钉/腾讯会议/得到/生图——靠这个切换不同租户的 key 与落盘目录；
+  # 飞书的多租户走 lark-cli profile + FEISHU_TENANTS，见 scripts/pull-feishu.sh）。
+  local tenant="${TENANT:-}"
+  if [ -n "$tenant" ]; then
+    local tf="$WORKSPACE_ROOT/.env.${tenant}.local"
+    if [ -f "$tf" ]; then set -a; . "$tf"; set +a; log "已叠加租户配置 $tf"
+    else warn "TENANT=$tenant 但未找到 ${tf}（沿用默认 .env.local 的值）"; fi
+  fi
 }

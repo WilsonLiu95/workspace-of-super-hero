@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "updated": "2026-06-15",
+  "repo": {
+    "github": "WilsonLiu95/workspace-of-super-hero",
+    "gitee": "",
+    "default_branch": "main"
+  },
+  "notes": "Skill 分发清单。每个 skill 的真身在 .claude/skills/<name>/；这里记录版本/路径/依赖/环境变量，供 install.sh 拉取。版本默认从 default_branch 取；打了 <name>-v<版本> 的 git tag 后，install <name>@<版本> 会拉对应 tag（不可变）。extra_paths 是该 skill 依赖的共享脚本（自包含的新 skill 为空）。",
+  "skills": {
+    "feishu-cli": {
+      "version": "0.1.0",
+      "title": "飞书归档/操作（lark-cli）",
+      "description": "用官方 lark-cli 拉飞书会话/文档并归档，或回写飞书。多租户。",
+      "path": ".claude/skills/feishu-cli",
+      "extra_paths": ["scripts/pull-feishu.sh", "scripts/lib/common.sh"],
+      "needs_credentials": true,
+      "env": ["FEISHU_TENANTS", "FEISHU_TENANT", "FEISHU_SINCE_DAYS", "FEISHU_MAX_CHATS"],
+      "system_deps": ["lark-cli（npm i -g @larksuite/cli，需 auth login）"],
+      "pip": []
+    },
+    "dingtalk": {
+      "version": "0.1.0",
+      "title": "钉钉归档（通讯录/文档）",
+      "description": "自建企业内部应用归档钉钉通讯录与文档/知识库/钉盘。钉钉无历史聊天记录 API。",
+      "path": ".claude/skills/dingtalk",
+      "extra_paths": [],
+      "needs_credentials": true,
+      "env": ["DINGTALK_APP_KEY", "DINGTALK_APP_SECRET", "DINGTALK_TENANT", "DINGTALK_ARCHIVE"],
+      "system_deps": [],
+      "pip": []
+    },
+    "tencent-meeting": {
+      "version": "0.1.0",
+      "title": "腾讯会议归档（录制/AI纪要/转写）",
+      "description": "企业版自建应用（AKSK 签名）归档录制、AI 纪要、智能转写、会议摘要。",
+      "path": ".claude/skills/tencent-meeting",
+      "extra_paths": [],
+      "needs_credentials": true,
+      "env": ["TENCENT_MEETING_APP_ID", "TENCENT_MEETING_SDK_ID", "TENCENT_MEETING_SECRET_ID", "TENCENT_MEETING_SECRET_KEY", "TENCENT_MEETING_OPERATOR_ID", "TENCENT_MEETING_OPERATOR_ID_TYPE", "TENCENT_MEETING_SINCE_DAYS"],
+      "system_deps": [],
+      "pip": []
+    },
+    "get-biji": {
+      "version": "0.1.0",
+      "title": "得到 / Get笔记（Biji）",
+      "description": "拉取/语义搜索得到笔记与知识库，归档进 sources/getnote/。",
+      "path": ".claude/skills/get-biji",
+      "extra_paths": ["scripts/pull-getnote.sh", "scripts/lib/get_biji.py", "scripts/lib/common.sh"],
+      "needs_credentials": true,
+      "env": ["GET_BIJI_API_KEY", "GET_BIJI_CLIENT_ID", "GET_BIJI_DEFAULT_TOPIC_ID"],
+      "system_deps": [],
+      "pip": []
+    },
+    "wechat-chatlog": {
+      "version": "0.1.0",
+      "title": "微信聊天归档（chatlog）",
+      "description": "经本地 chatlog HTTP 服务把微信聊天记录归档进 sources/wechat/。",
+      "path": ".claude/skills/wechat-chatlog",
+      "extra_paths": ["scripts/pull-wechat.sh", "scripts/lib/common.sh"],
+      "needs_credentials": true,
+      "env": ["CHATLOG_BASE_URL", "WECHAT_SINCE_DAYS", "WECHAT_MAX_SESSIONS"],
+      "system_deps": ["chatlog（github.com/sjzar/chatlog，需 chatlog server 运行中）"],
+      "pip": []
+    },
+    "wechat-exporter": {
+      "version": "0.1.0",
+      "title": "微信公众号文章导出",
+      "description": "扫码登录后拉取任意公众号全部历史文章，导出 JSON/Excel/Markdown/TXT。",
+      "path": ".claude/skills/wechat-exporter",
+      "extra_paths": [],
+      "needs_credentials": true,
+      "env": [],
+      "system_deps": [],
+      "pip": ["requests", "openpyxl", "markdownify", "beautifulsoup4"]
+    },
+    "xiaoyuzhou": {
+      "version": "0.1.0",
+      "title": "小宇宙播客拉取",
+      "description": "扫码登录后批量拉小宇宙播客单集/Show Notes/逐字稿作研究素材。",
+      "path": ".claude/skills/xiaoyuzhou",
+      "extra_paths": [],
+      "needs_credentials": true,
+      "env": [],
+      "system_deps": [],
+      "pip": ["见 .claude/skills/xiaoyuzhou/requirements.txt"]
+    },
+    "blog": {
+      "version": "0.1.0",
+      "title": "博客 / RSS 归档",
+      "description": "给主页或 feed URL，自动发现 RSS/Atom，抽正文转 Markdown 归档进 sources/blog/。无需凭证。",
+      "path": ".claude/skills/blog",
+      "extra_paths": [],
+      "needs_credentials": false,
+      "env": ["BLOG_FEEDS", "BLOG_MAX_POSTS", "BLOG_SINCE_DAYS"],
+      "system_deps": [],
+      "pip": ["feedparser", "trafilatura", "markdownify"]
+    },
+    "ai-image": {
+      "version": "0.1.0",
+      "title": "AI 生图（OpenAI 兼容）",
+      "description": "通过 OpenAI 兼容图片接口生成图片（gpt-image-2，gemini 兜底）。",
+      "path": ".claude/skills/ai-image",
+      "extra_paths": ["scripts/generate-image.py"],
+      "needs_credentials": true,
+      "env": ["AIPROXY_API_KEY", "AIPROXY_BASE_URL"],
+      "system_deps": [],
+      "pip": []
+    },
+    "pull-sources": {
+      "version": "0.1.0",
+      "title": "一键拉取编排",
+      "description": "编排各来源 pull-* 脚本，供定时器/手动一键同步。",
+      "path": ".claude/skills/pull-sources",
+      "extra_paths": ["scripts/pull-all.sh", "scripts/pull-feishu.sh", "scripts/pull-getnote.sh", "scripts/pull-wechat.sh", "scripts/lib/common.sh", "scripts/lib/get_biji.py"],
+      "needs_credentials": false,
+      "env": ["PULL_SOURCES"],
+      "system_deps": [],
+      "pip": []
+    },
+    "setup": {
+      "version": "0.1.0",
+      "title": "首次配置向导 / 体检",
+      "description": "首次使用引导：勾选要打通的集成、逐项配置 .env.local、体检每个集成是否就绪。",
+      "path": ".claude/skills/setup",
+      "extra_paths": ["scripts/setup.sh", "scripts/lib/common.sh"],
+      "needs_credentials": false,
+      "env": [],
+      "system_deps": [],
+      "pip": []
+    }
+  }
+}

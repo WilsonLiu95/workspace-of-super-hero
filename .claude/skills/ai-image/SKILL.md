@@ -1,6 +1,8 @@
 ---
 name: ai-image
 description: 通过 OpenAI 兼容的图片接口生成图片（主模型 gpt-image-2，效果/质感/广告图更强；备用 gemini-3.1-flash-image，主模型 429/5xx 时自动兜底）。触发场景：「画一张图」「生成一张图片」「生图」「做一张海报/封面/插画/配图/产品图/广告图/概念图」「text-to-image」「generate image」「draw an image」「AI绘画」「文生图」。只要用户没有明确指定其他生图模型（如 seedream、即梦、DALL·E、Midjourney），都优先用此技能。实现是共享脚本 scripts/generate-image.py，需先配置环境变量 AIPROXY_API_KEY 与 AIPROXY_BASE_URL（本模板不含任何 key）。输出默认存到当前目录并返回绝对路径。
+version: 0.1.0
+updated: "2026-06-15"
 ---
 
 # AI 生图（gpt-image-2 + fallback）

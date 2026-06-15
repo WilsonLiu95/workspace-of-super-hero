@@ -7,9 +7,13 @@
 | 目录 | 来源 | 说明 |
 | --- | --- | --- |
 | `feishu/` | 飞书 | **租户优先**：`feishu/<租户>/{dm,groups,docs}/` |
+| `dingtalk/` | 钉钉 | **租户优先**：`dingtalk/<租户>/{contacts,docs}/`（通讯录/文档；钉钉无聊天记录 API） |
+| `tencent-meeting/` | 腾讯会议 | 录制、AI 纪要、智能转写、会议摘要 |
+| `getnote/` | 得到 / Get笔记 | Biji 笔记与知识库 |
 | `wechat/` | 微信 | 单聊/群聊记录 |
 | `mp/` | 公众号 | 文章、推文 |
 | `social/` | 其他社媒/播客 | 微博/小红书/X/小宇宙等的帖子、收藏、播客单集 |
+| `blog/` | 博客 / RSS | 个人博客、RSS/Atom 订阅源的文章（blog 技能） |
 | `knowledge/` | 个人知识库 | 笔记、剪藏、长期资料 |
 | `inbox/` | 临时中转 | 来源/分类不明的，先丢这里待归档 |
 
@@ -17,10 +21,10 @@
 
 ```yaml
 ---
-source: feishu          # feishu | wechat | mp | social | knowledge | inbox
-tenant: <租户名>         # 多租户来源（飞书）必填，其余可省
+source: feishu          # feishu | dingtalk | tencent-meeting | getnote | wechat | mp | social | blog | knowledge | inbox
+tenant: <租户名>         # 多租户来源（飞书/钉钉）必填，其余可省
 channel: <会话/群/作者>
-type: dm                # dm | group | doc | article | note
+type: dm                # dm | group | doc | article | note | contacts | meeting
 captured: 2026-06-14    # 采集日期
 ---
 ```

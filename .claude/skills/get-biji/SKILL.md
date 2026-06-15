@@ -1,6 +1,8 @@
 ---
 name: get-biji
 description: 拉取/查询「得到 / Get笔记 / Biji」笔记与知识库，并归档进 sources/getnote/。触发场景：「拉得到笔记」「同步 Get笔记」「查我的笔记/知识库」「回忆某条笔记」「基于得到笔记回答」「Biji」。实现是共享脚本 scripts/lib/get_biji.py（Biji OpenAPI 客户端）与 scripts/pull-getnote.sh。需 GET_BIJI_API_KEY（notes list 还需 GET_BIJI_CLIENT_ID，知识库可选 GET_BIJI_DEFAULT_TOPIC_ID）。
+version: 0.1.0
+updated: "2026-06-15"
 ---
 
 # Get笔记 / 得到 / Biji

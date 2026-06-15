@@ -1,6 +1,8 @@
 ---
 name: wechat-chatlog
 description: 把微信聊天记录拉进 sources/wechat/，用 chatlog（本地 HTTP 服务暴露微信记录，微信无官方 API）。触发场景：「拉微信聊天」「同步微信记录」「把微信某人/某群的对话存下来」「chatlog」。实现是共享脚本 scripts/pull-wechat.sh。需先按 chatlog 文档完成 key/decrypt 并运行 chatlog server。
+version: 0.1.0
+updated: "2026-06-15"
 ---
 
 # 微信 (chatlog)

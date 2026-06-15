@@ -8,15 +8,25 @@ SCRIPT_NAME="pull-all"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 load_local_env
 
-HERE="$(dirname "${BASH_SOURCE[0]}")"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 默认拉核心来源；用 PULL_SOURCES 覆盖，也可纳入自包含的新 skill，例：
+#   PULL_SOURCES="feishu getnote dingtalk blog" scripts/pull-all.sh
 SOURCES_LIST="${PULL_SOURCES:-feishu getnote wechat}"
+
+# 解析来源 → 脚本路径：先看顶层 scripts/pull-<s>.sh，再看自包含 skill 的脚本
+resolve_script() {
+  local s="$1"
+  [ -f "$HERE/pull-$s.sh" ] && { printf '%s\n' "$HERE/pull-$s.sh"; return 0; }
+  local sk="$WORKSPACE_ROOT/.claude/skills/$s/scripts/pull-$s.sh"
+  [ -f "$sk" ] && { printf '%s\n' "$sk"; return 0; }
+  return 1
+}
 
 declare -a OK=() FAIL=()
 for s in $SOURCES_LIST; do
-  script="$HERE/pull-$s.sh"
-  [ -x "$script" ] || script="bash $HERE/pull-$s.sh"
-  log "==== 开始 $s ===="
-  if bash "$HERE/pull-$s.sh"; then OK+=("$s"); else FAIL+=("$s"); warn "$s 失败（继续其它来源）"; fi
+  scr="$(resolve_script "$s")" || { warn "找不到来源「${s}」的拉取脚本，跳过"; FAIL+=("$s"); continue; }
+  log "==== 开始 ${s}（${scr}）===="
+  if bash "$scr"; then OK+=("$s"); else FAIL+=("$s"); warn "$s 失败（继续其它来源）"; fi
 done
 
 log "==== 汇总 ===="

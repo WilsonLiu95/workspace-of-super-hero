@@ -27,6 +27,13 @@ __pycache__/
 # 这是本地工具生成的派生物，会漂移；模板的可移植跨 Agent 方案是 .claude/skills + AGENTS.md + scripts/。
 .agents/
 
+# --- 腾讯 CodeBuddy 本地态 ---
+# .codebuddy/skills/ 是 .claude/skills 的本地镜像（install.sh --codebuddy 生成），同样会漂移 → 不跟踪。
+# CodeBuddy 的工作区契约直接复用根 AGENTS.md（无 CODEBUDDY.md 时自动加载它）。
+# 个人/含凭证的本地覆盖（CODEBUDDY.local.md、settings.local.json）永不提交。
+.codebuddy/
+CODEBUDDY.local.md
+
 # --- 原始来源数据：保留结构+示例，忽略真实数据 ---
 # 采用者放进 sources/ 的真实资料（私密聊天/文档）默认留在本地、不进 git，
 # 避免误传隐私。模板自带的脚手架（README、.gitkeep、明显虚构的 _example-* 示例）会被保留。

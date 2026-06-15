@@ -1,6 +1,8 @@
 ---
 name: feishu-cli
 description: 用官方 lark-cli（@larksuite/cli）操作飞书/Lark，并按本工作区契约归档。触发场景：「拉飞书聊天/群消息」「同步飞书文档」「飞书云文档/Drive/Wiki/多维表格/日历/通讯录」「把成品发到飞书」「lark-cli」「feishu CLI」「Lark API」。凭证由采用者在 ~/.lark-cli 管理；原始数据只写 sources/feishu/。
+version: 0.1.0
+updated: "2026-06-15"
 ---
 
 # 飞书 CLI

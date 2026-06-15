@@ -53,10 +53,10 @@ sources/        deliverables/
 
 ```yaml
 ---
-source: feishu          # feishu | getnote | wechat | mp | social | knowledge | inbox
-tenant: <租户名>         # 仅 feishu 等多租户来源需要；其余可省略
+source: feishu          # feishu | dingtalk | tencent-meeting | getnote | wechat | mp | social | blog | knowledge | inbox
+tenant: <租户名>         # 多租户来源（飞书/钉钉）需要；其余可省略
 channel: <会话/群/作者>  # 单聊对象、群名、公众号名、作者等
-type: dm                # dm | group | doc | article | note
+type: dm                # dm | group | doc | article | note | contacts | meeting
 captured: 2026-06-14    # 采集日期 YYYY-MM-DD
 ---
 ```
@@ -114,19 +114,36 @@ published_url:          # 仅 web/已发布时填写
 - **配图**：用内置 `ai-image` 技能（`scripts/generate-image.py`）为交付物生成插图，存到 `assets/` 再引用（需配置 key，见 §8）。
 - **回写飞书 / 发布 web**：飞书用 `feishu-cli` 回写并回填 `published_url`；web 见 §6 用你自配的发布命令。
 
-## 8. 内置技能与脚本（双 Agent 同源）
+## 8. 内置技能与脚本（三 Agent 同源 · 带版本 · 可分发）
 
-**实现单一**：脚本化来源的真正逻辑在 `scripts/`；Claude 的 `.claude/skills/`、Codex 的 `AGENTS.md`、定时器都**调同一批脚本**，不分叉。另有两个**交互式按需**技能（`wechat-exporter` 公众号、`xiaoyuzhou` 小宇宙），自带脚本、需扫码登录，不纳入每日 `pull-all`。Claude 会自动发现 `.claude/skills/`（标准 Agent Skill 格式，Codex 也能直接读这些 `SKILL.md`）。**均不含任何密钥/账号**，采用者自带凭证（统一放仓库根 `.env.local`，见 `.env.example`）。
+**三 Agent 同源**：实现的真正逻辑在 `scripts/` 与各 skill 自带的 `scripts/`；三个 Agent 都**调同一批脚本**，不分叉——
+- **Claude** 读 `.claude/skills/`（自动发现，标准 Agent Skill 格式）；
+- **Codex** 读根 `AGENTS.md`；
+- **腾讯 CodeBuddy** 在没有 `CODEBUDDY.md` 时**自动加载 `AGENTS.md`**（故无需重复维护），skill 可经 `skills/install.sh --codebuddy` 镜像到 `.codebuddy/skills/`。
+
+每个 `SKILL.md` 的 frontmatter 带 `version`（语义化版本）。两个**交互式按需**技能（`wechat-exporter` 公众号、`xiaoyuzhou` 小宇宙）需扫码登录，不纳入每日 `pull-all`。**均不含任何密钥/账号**，采用者自带凭证（统一放仓库根 `.env.local`，见 `.env.example`）。
 
 | 技能 | 实现脚本 | 采用者需配置 |
 | --- | --- | --- |
-| `pull-sources` | `scripts/pull-all.sh` | 见下各来源 |
-| `feishu-cli` | `scripts/pull-feishu.sh` + `lark-cli` | `npm i -g @larksuite/cli` → `lark-cli config init` → `auth login`（凭证存 `~/.lark-cli`） |
+| `setup`（首次引导/体检） | `scripts/setup.sh`（status/init/doctor/set） | 无；带你勾选并打通各集成 |
+| `pull-sources` | `scripts/pull-all.sh` | 见下各来源（`PULL_SOURCES` 可纳入新源） |
+| `feishu-cli`（飞书·多租户） | `scripts/pull-feishu.sh` + `lark-cli` + `feishu-add-tenant.sh` | `npm i -g @larksuite/cli`；每租户 `scripts/feishu-add-tenant.sh <名>`；`FEISHU_TENANTS` |
+| `dingtalk`（钉钉·通讯录/文档） | 技能内 `pull-dingtalk.sh` + `dingtalk_client.py`（仅标准库） | `DINGTALK_APP_KEY` / `DINGTALK_APP_SECRET`；管理员授读权限（**无聊天记录 API**） |
+| `tencent-meeting`（腾讯会议·录制/纪要/转写） | 技能内 `pull-tencent-meeting.sh` + `tmeeting_client.py`（标准库） | 企业版自建应用 AKSK：`TENCENT_MEETING_*`（APP_ID/SDK_ID/SECRET_ID/SECRET_KEY/OPERATOR_ID） |
 | `get-biji`（得到/Get笔记） | `scripts/pull-getnote.sh` + `scripts/lib/get_biji.py` | `GET_BIJI_API_KEY` / `GET_BIJI_CLIENT_ID`（可选 `GET_BIJI_DEFAULT_TOPIC_ID`） |
 | `wechat-chatlog`（微信聊天） | `scripts/pull-wechat.sh` + `chatlog` | 装 `chatlog`，跑 `chatlog server` |
-| `ai-image` | `scripts/generate-image.py` | `AIPROXY_API_KEY` / `AIPROXY_BASE_URL` |
 | `wechat-exporter`（微信公众号·扫码） | 技能内 `scripts/`（登录公众平台）→ `sources/mp/` | `pip install requests openpyxl`；交互式 |
 | `xiaoyuzhou`（小宇宙播客·扫码） | 技能内 `xiaoyuzhou.py`（登录）→ `sources/social/` | `pip install requests qrcode pillow`；`XIAOYUZHOU_OUTPUT_DIR` |
+| `blog`（博客/RSS） | 技能内 `pull-blog.sh` + `blog_client.py`（标准库可跑） | `BLOG_FEEDS`（无需凭证；可选 `pip install feedparser trafilatura markdownify`） |
+| `ai-image` | `scripts/generate-image.py` | `AIPROXY_API_KEY` / `AIPROXY_BASE_URL` |
+
+**多租户**：飞书走 `lark-cli profile` + `FEISHU_TENANTS`（每租户一个 profile）；其它"凭证在 .env"的来源（钉钉/腾讯会议/得到/生图）把另一套写到 `.env.<租户>.local`，运行时 `TENANT=<租户> <脚本>` 在默认 `.env.local` 之上叠加。
+
+**版本与分发**：`skills/registry.json` 是清单，`skills/install.sh` 是一行安装器——在任意目标仓库
+`curl -fsSL https://raw.githubusercontent.com/WilsonLiu95/workspace-of-super-hero/main/skills/install.sh | bash -s -- install <skill>[@版本] [--codex --codebuddy]`。
+版本按 `<skill>-v<版本>` 的 git tag 冻结；不带 `@版本` 拉 main 最新。维护/发布流程见 `skills/README.md`。
+
+**首次配置**：新机器导入后 → `bash scripts/setup.sh doctor` 体检，或在 Agent 里说「帮我配置工作区」走 `setup` 引导（勾选集成→逐项填 `.env.local`→体检）。
 
 **定时**：把 `scripts/pull-all.sh` 挂到 Codex `automation.toml` / Claude `/schedule` / 本地 `cron`，示例见 `scripts/README.md`。当前未绑定触发器。
 
@@ -149,5 +166,6 @@ published_url:          # 仅 web/已发布时填写
 
 ## 11. 环境能力（因人而异）
 
-- **随模板自带（见 §8）**：`pull-sources` / `feishu-cli` / `get-biji` / `wechat-chatlog` / `wechat-exporter` / `xiaoyuzhou` / `ai-image` 七个技能 + `scripts/`，随仓库分享。但都需采用者**自带凭证/工具**（飞书登录、Biji key、chatlog、公众号/小宇宙扫码登录、生图 key）才能真正调用。
-- **不随模板、需你环境另配**：特定静态托管账号（CloudBase/Vercel/…）、`chatlog`/`lark-cli` 等二进制的安装。用之前先确认在你的环境可用；不可用就走手动/导出路径。
+- **随模板自带（见 §8）**：`setup` / `pull-sources` / `feishu-cli` / `dingtalk` / `tencent-meeting` / `get-biji` / `wechat-chatlog` / `wechat-exporter` / `xiaoyuzhou` / `blog` / `ai-image` 十一个技能 + `scripts/` + `skills/`（清单与一行安装器），随仓库分享，三 Agent（Claude/Codex/CodeBuddy）通用。但都需采用者**自带凭证/工具**（飞书/钉钉/腾讯会议应用、Biji key、chatlog、公众号/小宇宙扫码登录、生图 key；博客无需凭证）才能真正调用。
+- **不随模板、需你环境另配**：特定静态托管账号（CloudBase/Vercel/…）、`chatlog`/`lark-cli`/CodeBuddy CLI 等二进制的安装。用之前先确认在你的环境可用；不可用就走手动/导出路径。
+- **首次导入**：先跑 `bash scripts/setup.sh doctor` 看缺什么，或在 Agent 里说「帮我配置工作区」走 `setup` 引导。

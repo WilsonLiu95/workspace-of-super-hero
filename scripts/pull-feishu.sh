@@ -26,10 +26,10 @@ END_TS=$(date +%s)
 # 拉一个租户（假定已切到其 profile）。$1 = 租户名(= 目录名)
 pull_one_tenant() {
   local tenant="$1" dest="$SOURCES_DIR/feishu/$1"
-  lark-cli auth status >/dev/null 2>&1 || { warn "租户「$tenant」未登录，跳过：lark-cli profile use $tenant && lark-cli auth login"; return 1; }
+  lark-cli auth status >/dev/null 2>&1 || { warn "租户「${tenant}」未登录，跳过：lark-cli profile use $tenant && lark-cli auth login"; return 1; }
   log "租户=$tenant 窗口=最近${SINCE_DAYS}天 上限=${MAX_CHATS}个会话"
   local chats_json; chats_json="$(lark-cli im +chat-list --as user --page-all --format json 2>/dev/null || true)"
-  [ -n "$chats_json" ] || { warn "租户「$tenant」会话列表为空，跳过"; return 1; }
+  [ -n "$chats_json" ] || { warn "租户「${tenant}」会话列表为空，跳过"; return 1; }
   printf '%s' "$chats_json" | python3 "$HERE/lib/feishu_to_md.py" "$dest" "$START_TS" "$END_TS" "$MAX_CHATS" "$tenant" "$TODAY"
 }
 
@@ -45,12 +45,12 @@ if [ -n "${FEISHU_TENANTS:-}" ]; then
   for t in $(printf '%s' "$FEISHU_TENANTS" | tr ',' ' '); do
     [ -n "$t" ] || continue
     if ! lark-cli profile use "$t" >/dev/null 2>&1; then
-      warn "无此 profile：「$t」。先建：scripts/feishu-add-tenant.sh $t"; fail=$((fail+1)); continue
+      warn "无此 profile：「${t}」。先建：scripts/feishu-add-tenant.sh $t"; fail=$((fail+1)); continue
     fi
     if pull_one_tenant "$t"; then ok=$((ok+1)); else fail=$((fail+1)); fi
   done
   [ -n "$RESTORE" ] && lark-cli profile use "$RESTORE" >/dev/null 2>&1 || true
-  log "多租户完成：成功 $ok，失败/跳过 $fail（已切回 profile：${RESTORE:-未知}）"
+  log "多租户完成：成功 ${ok}，失败/跳过 ${fail}（已切回 profile：${RESTORE:-未知}）"
   [ "$fail" -eq 0 ]
 else
   lark-cli auth status >/dev/null 2>&1 || die "lark-cli 未登录（lark-cli auth login）；或在 .env.local 配 FEISHU_TENANTS 走多租户。"

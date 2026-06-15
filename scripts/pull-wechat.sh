@@ -19,9 +19,9 @@ MAX="${WECHAT_MAX_SESSIONS:-50}"
 DEST="$SOURCES_DIR/wechat"
 
 have python3 || die "需要 python3。"
-have chatlog || warn "未在 PATH 找到 chatlog 二进制（仍会尝试访问 $BASE）。安装见 github.com/sjzar/chatlog。"
+have chatlog || warn "未在 PATH 找到 chatlog 二进制（仍会尝试访问 ${BASE}）。安装见 github.com/sjzar/chatlog。"
 curl -fsS "$BASE/api/v1/session" -o /dev/null 2>/dev/null \
-  || die "连不上 chatlog 服务 $BASE。请先按 chatlog 文档完成 key/decrypt 并运行 'chatlog server'。"
+  || die "连不上 chatlog 服务 ${BASE}。请先按 chatlog 文档完成 key/decrypt 并运行 'chatlog server'。"
 
 if date -v-1d >/dev/null 2>&1; then START=$(date -v-"${SINCE_DAYS}"d +%F); else START=$(date -d "-${SINCE_DAYS} days" +%F); fi
 RANGE="${START}~${TODAY}"

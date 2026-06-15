@@ -1,6 +1,8 @@
 ---
 name: pull-sources
 description: 一键把各来源（飞书 / 得到Get笔记 / 微信）的最新内容拉回 sources/。触发场景：「拉一下所有来源」「同步今天的飞书和笔记」「更新原始数据」「跑一下 pull-all」「把数据拉回来」。实现是编排脚本 scripts/pull-all.sh，逐个调用 pull-feishu / pull-getnote / pull-wechat。
+version: 0.1.0
+updated: "2026-06-15"
 ---
 
 # 拉取来源（编排）

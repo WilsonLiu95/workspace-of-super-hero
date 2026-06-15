@@ -18,7 +18,7 @@ TENANT="${1:-}"
 APP_ID="${2:-}"
 
 if [ -z "$APP_ID" ]; then
-  read -r -p "租户「$TENANT」的 App ID (cli_...): " APP_ID
+  read -r -p "租户「${TENANT}」的 App ID (cli_...): " APP_ID
 fi
 [ -n "$APP_ID" ] || die "App ID 不能为空"
 
@@ -26,15 +26,15 @@ printf '请输入「%s」的 App Secret（输入时不显示，回车确认）: 
 read -r -s APP_SECRET; echo >&2
 [ -n "$APP_SECRET" ] || die "App Secret 不能为空"
 
-log "创建/更新 profile「$TENANT」(app-id=$APP_ID) ..."
+log "创建/更新 profile「${TENANT}」(app-id=$APP_ID) ..."
 printf '%s' "$APP_SECRET" | lark-cli profile add --name "$TENANT" --app-id "$APP_ID" --app-secret-stdin --use
 unset APP_SECRET
 
-log "对租户「$TENANT」做设备码登录（浏览器里确认授权）..."
+log "对租户「${TENANT}」做设备码登录（浏览器里确认授权）..."
 lark-cli auth login || warn "登录未完成；稍后可重跑：lark-cli profile use $TENANT && lark-cli auth login"
 
 mkdir -p "$SOURCES_DIR/feishu/$TENANT"/{dm,groups,docs}
 log "已建目录 sources/feishu/$TENANT/{dm,groups,docs}"
 
-log "完成 ✅  最后一步：把「$TENANT」加进 .env.local 的 FEISHU_TENANTS，例如："
+log "完成 ✅  最后一步：把「${TENANT}」加进 .env.local 的 FEISHU_TENANTS，例如："
 log "    FEISHU_TENANTS=\"$TENANT ...\"   然后 scripts/pull-feishu.sh 就会带上它"
