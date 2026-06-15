@@ -1,86 +1,58 @@
 #!/usr/bin/env bash
-# 拉飞书 → sources/feishu/<租户>/{dm,groups}/
-# 工具：官方 lark-cli（@larksuite/cli）。凭证由 lark-cli 管理（~/.lark-cli），不在本仓库。
+# 拉飞书 → sources/feishu/<租户>/{dm,groups}/   —— 支持多租户
 #
-# 用法：
-#   FEISHU_TENANT=mycorp FEISHU_SINCE_DAYS=1 scripts/pull-feishu.sh
-# 环境变量：
-#   FEISHU_TENANT      落盘用的租户目录名（默认 default）
-#   FEISHU_SINCE_DAYS  只拉最近 N 天的消息（默认 1）
-#   FEISHU_MAX_CHATS   最多处理多少个会话（默认 50，防止首次全量过大）
+# 模型：每个租户 = 一个 lark-cli profile，profile 名 == 租户目录名。
 #
-# 说明：sources 是"原始数据"，这里只做轻量落盘；精细解析/合成交给 Agent。
+# 多租户（推荐）：在 .env.local 设
+#     FEISHU_TENANTS="acme globex"      # 空格或逗号分隔；每个名字 = profile 名 = sources/feishu/<名字>/
+#   脚本逐个 `lark-cli profile use <租户>` 后拉取，结束后切回原 active profile。
+# 单租户（兼容）：不设 FEISHU_TENANTS 时用当前 active profile，落到 sources/feishu/${FEISHU_TENANT:-default}/。
+#
+# 添加/登录某租户凭证：scripts/feishu-add-tenant.sh <租户名>
+# 其它环境变量：FEISHU_SINCE_DAYS（默认 1）、FEISHU_MAX_CHATS（默认 50）
 SCRIPT_NAME="pull-feishu"
-source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HERE/lib/common.sh"
 load_local_env
 
-have lark-cli || die "未安装 lark-cli。请先 'npm i -g @larksuite/cli'（见 .claude/skills/feishu-cli）。"
-lark-cli auth status >/dev/null 2>&1 || die "lark-cli 未登录。请先 'lark-cli config init' + 'lark-cli auth login'。"
+have lark-cli || die "未安装 lark-cli：npm i -g @larksuite/cli（见 .claude/skills/feishu-cli）。"
+have python3  || die "需要 python3。"
 
-TENANT="${FEISHU_TENANT:-default}"
 SINCE_DAYS="${FEISHU_SINCE_DAYS:-1}"
 MAX_CHATS="${FEISHU_MAX_CHATS:-50}"
-DEST="$SOURCES_DIR/feishu/$TENANT"
-
-# 时间窗口（秒级 epoch），lark-cli 多数接口用秒
 if date -v-1d >/dev/null 2>&1; then START_TS=$(date -v-"${SINCE_DAYS}"d +%s); else START_TS=$(date -d "-${SINCE_DAYS} days" +%s); fi
 END_TS=$(date +%s)
 
-log "租户=$TENANT 窗口=最近${SINCE_DAYS}天 上限=${MAX_CHATS}个会话"
+# 拉一个租户（假定已切到其 profile）。$1 = 租户名(= 目录名)
+pull_one_tenant() {
+  local tenant="$1" dest="$SOURCES_DIR/feishu/$1"
+  lark-cli auth status >/dev/null 2>&1 || { warn "租户「$tenant」未登录，跳过：lark-cli profile use $tenant && lark-cli auth login"; return 1; }
+  log "租户=$tenant 窗口=最近${SINCE_DAYS}天 上限=${MAX_CHATS}个会话"
+  local chats_json; chats_json="$(lark-cli im +chat-list --as user --page-all --format json 2>/dev/null || true)"
+  [ -n "$chats_json" ] || { warn "租户「$tenant」会话列表为空，跳过"; return 1; }
+  printf '%s' "$chats_json" | python3 "$HERE/lib/feishu_to_md.py" "$dest" "$START_TS" "$END_TS" "$MAX_CHATS" "$tenant" "$TODAY"
+}
 
-# 1) 列出我所在的会话（拿 chat_id / 名称 / 类型）
-chats_json="$(lark-cli im +chat-list --as user --page-all --format json 2>/dev/null || true)"
-[ -n "$chats_json" ] || die "拉取会话列表为空（检查 lark-cli 权限/登录）。"
+# 当前 active profile（用于结束后还原）
+active_profile() {
+  lark-cli profile list 2>/dev/null \
+    | python3 -c 'import sys,json;d=json.load(sys.stdin);print(next((p["name"] for p in d if p.get("active")),""))' 2>/dev/null || true
+}
 
-# 2) 遍历会话，拉时间窗口内消息，落到 dm/ 或 groups/。用 python 做 JSON→markdown（防御式解析）。
-printf '%s' "$chats_json" | python3 - "$DEST" "$START_TS" "$END_TS" "$MAX_CHATS" "$TENANT" "$TODAY" <<'PY'
-import json, os, subprocess, sys, re
-dest, start_ts, end_ts, max_chats, tenant, today = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), sys.argv[5], sys.argv[6]
-
-def load(s):
-    try: return json.loads(s)
-    except Exception: return {}
-
-raw = load(sys.stdin.read())
-# lark-cli 返回结构因版本而异：尽量从常见位置取列表
-items = raw if isinstance(raw, list) else (raw.get("items") or raw.get("data") or raw.get("chats") or [])
-def slug(t): return (re.sub(r'[\\/:*?"<>|]+', "-", re.sub(r"\s+", "-", t or "")).strip("-") or "untitled")[:60]
-
-count = 0
-for ch in items:
-    if count >= max_chats: break
-    chat_id = ch.get("chat_id") or ch.get("id") or ""
-    name    = ch.get("name") or ch.get("title") or chat_id
-    ctype   = ch.get("chat_type") or ch.get("type") or "group"
-    if not chat_id: continue
-    kind = "dm" if ctype in ("p2p", "dm", "single") else "groups"
-    # 拉该会话窗口内消息
-    params = json.dumps({"chat_id": chat_id, "start_time": start_ts, "end_time": end_ts})
-    try:
-        out = subprocess.run(["lark-cli","im","+chat-messages-list","--as","user",
-                              "--params",params,"--page-all","--format","json"],
-                             capture_output=True, text=True, timeout=120)
-        msgs = load(out.stdout)
-    except Exception as e:
-        msgs = {}
-    mlist = msgs if isinstance(msgs, list) else (msgs.get("items") or msgs.get("data") or [])
-    if not mlist:  # 窗口内没消息就跳过，不建空文件
-        continue
-    lines = []
-    for m in mlist:
-        sender = (m.get("sender") or {}).get("name") if isinstance(m.get("sender"), dict) else m.get("sender") or m.get("sender_id") or "?"
-        body   = m.get("text") or m.get("content") or json.dumps(m.get("body", ""), ensure_ascii=False)
-        ts     = m.get("create_time") or m.get("time") or ""
-        lines.append(f"**{sender}** {ts}\n\n{body}\n")
-    d = os.path.join(dest, kind); os.makedirs(d, exist_ok=True)
-    path = os.path.join(d, f"{today}_{slug(name)}.md")
-    fm = (f"source: feishu\ntenant: {tenant}\nchannel: {name}\n"
-          f"type: {'dm' if kind=='dm' else 'group'}\ncaptured: {today}\nchat_id: {chat_id}")
-    with open(path, "w") as f:
-        f.write(f"---\n{fm}\n---\n\n# {name}\n\n" + "\n".join(lines) + "\n")
-    print(f"[pull-feishu] 写入 {path}", file=sys.stderr)
-    count += 1
-print(f"[pull-feishu] 完成，处理 {count} 个会话", file=sys.stderr)
-PY
-
-log "完成。产物在 $DEST/（注意：sources 默认不进 git，见根 .gitignore）"
+if [ -n "${FEISHU_TENANTS:-}" ]; then
+  RESTORE="$(active_profile)"
+  ok=0; fail=0
+  for t in $(printf '%s' "$FEISHU_TENANTS" | tr ',' ' '); do
+    [ -n "$t" ] || continue
+    if ! lark-cli profile use "$t" >/dev/null 2>&1; then
+      warn "无此 profile：「$t」。先建：scripts/feishu-add-tenant.sh $t"; fail=$((fail+1)); continue
+    fi
+    if pull_one_tenant "$t"; then ok=$((ok+1)); else fail=$((fail+1)); fi
+  done
+  [ -n "$RESTORE" ] && lark-cli profile use "$RESTORE" >/dev/null 2>&1 || true
+  log "多租户完成：成功 $ok，失败/跳过 $fail（已切回 profile：${RESTORE:-未知}）"
+  [ "$fail" -eq 0 ]
+else
+  lark-cli auth status >/dev/null 2>&1 || die "lark-cli 未登录（lark-cli auth login）；或在 .env.local 配 FEISHU_TENANTS 走多租户。"
+  pull_one_tenant "${FEISHU_TENANT:-default}"
+fi

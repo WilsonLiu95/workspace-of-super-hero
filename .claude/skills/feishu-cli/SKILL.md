@@ -13,6 +13,22 @@ description: 用官方 lark-cli（@larksuite/cli）操作飞书/Lark，并按本
 - 操作前检查身份：`lark-cli auth status`；连通性问题用 `lark-cli doctor`。
 - 凭证、token、app secret 只允许由 `lark-cli config/auth` 写到 `~/.lark-cli`，不要写入仓库。
 
+## 多租户（每个租户一个 profile）
+
+lark-cli 用 **profile** 管理多套凭证；本工作区约定 **profile 名 == 租户目录名**（`sources/feishu/<租户>/`）。
+
+- 看现有租户：`lark-cli profile list`（`active:true` 是当前选中的）。
+- **添加一个租户**（引导式，隐藏输入 secret，secret 不进 argv/仓库）：
+
+  ```bash
+  scripts/feishu-add-tenant.sh <租户名>     # 提示输入该租户的 App ID 与 App Secret，然后设备码登录
+  ```
+
+  等价手动：`lark-cli profile add --name <租户> --app-id cli_xxx --app-secret-stdin --use` → `lark-cli auth login`。
+- **声明要拉哪些租户**：在 `.env.local` 设 `FEISHU_TENANTS="租户A 租户B"`。
+- **拉取**：`scripts/pull-feishu.sh` 会逐个 `profile use <租户>` 拉到 `sources/feishu/<租户>/`，结束后切回原 profile。
+- ⚠️ 不要在用户没要求时擅自 `profile use/remove` 切换或删除租户（lark-cli 官方提示）。`pull-feishu.sh` 的切换是用户已配置的拉取意图，且结束会还原。
+
 ## 命令规则
 
 - 不要凭记忆猜接口名或参数。先用 `lark-cli <组> --help`、`lark-cli <组> <命令> --help` 或 `lark-cli schema <service.resource.method>` 查。
