@@ -15,19 +15,24 @@ updated: "2026-06-15"
 - 操作前检查身份：`lark-cli auth status`；连通性问题用 `lark-cli doctor`。
 - 凭证、token、app secret 只允许由 `lark-cli config/auth` 写到 `~/.lark-cli`，不要写入仓库。
 
-## 多租户（每个租户一个 profile）
+## 多租户（每个凭证一个 profile）
 
-lark-cli 用 **profile** 管理多套凭证；本工作区约定 **profile 名 == 租户目录名**（`sources/feishu/<租户>/`）。
+lark-cli 用 **profile** 管理多套凭证。命名约定 **`<人名>-<租户名>`**（如 `liusheng-jingbaobao` = 刘盛在晶宝宝租户下的凭证）；
+这个名字同时是 lark-cli profile 名 和 `sources/feishu/<名>/` 目录名——一眼看清"谁、在哪个租户"。同一租户可有多人各一份。
 
-- 看现有租户：`lark-cli profile list`（`active:true` 是当前选中的）。
-- **添加一个租户**（引导式，隐藏输入 secret，secret 不进 argv/仓库）：
+- 看现有：`lark-cli profile list`（`active:true` 是当前选中的）。
+- **添加一份凭证**——两种方式：
 
   ```bash
-  scripts/feishu-add-tenant.sh <租户名>     # 提示输入该租户的 App ID 与 App Secret，然后设备码登录
+  # ① 浏览器建新应用（推荐·免手输 Secret）：lark-cli 走浏览器流程创建自建应用并自动回填 App ID/Secret
+  scripts/feishu-add-tenant.sh <人名-租户名>
+  # ② 已有应用、手输：隐藏输入 App Secret，经 stdin 不进 argv/仓库
+  scripts/feishu-add-tenant.sh <人名-租户名> <app-id>
   ```
 
-  等价手动：`lark-cli profile add --name <租户> --app-id cli_xxx --app-secret-stdin --use` → `lark-cli auth login`。
-- **声明要拉哪些租户**：在 `.env.local` 设 `FEISHU_TENANTS="租户A 租户B"`。
+  底层：① `lark-cli config init --new --name <名>`；② `lark-cli config init --app-id cli_xxx --app-secret-stdin --name <名>`；之后均 `lark-cli auth login`。
+  ⚠ 方式①在**浏览器当前登录的飞书租户**下建应用——先确认登录的是目标租户。
+- **声明要拉哪些**：在 `.env.local` 设 `FEISHU_TENANTS="liusheng-jingbaobao zhangsan-acme"`。
 - **拉取**：`scripts/pull-feishu.sh` 会逐个 `profile use <租户>` 拉到 `sources/feishu/<租户>/`，结束后切回原 profile。
 - ⚠️ 不要在用户没要求时擅自 `profile use/remove` 切换或删除租户（lark-cli 官方提示）。`pull-feishu.sh` 的切换是用户已配置的拉取意图，且结束会还原。
 
