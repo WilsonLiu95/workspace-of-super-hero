@@ -2,7 +2,7 @@
 # 拉 Get笔记（得到/Biji）→ sources/getnote/
 # 工具：Biji OpenAPI 客户端 scripts/lib/get_biji.py（只从 env 读凭证）。
 #
-# 环境变量（见 .claude/skills/get-biji）：
+# 环境变量（见 skills/get-biji）：
 #   GET_BIJI_API_KEY          必需
 #   GET_BIJI_CLIENT_ID        notes list 必需
 #   GET_BIJI_DEFAULT_TOPIC_ID 可选
@@ -11,7 +11,7 @@ SCRIPT_NAME="pull-getnote"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 load_local_env
 
-[ -n "${GET_BIJI_API_KEY:-}" ]  || die "缺 GET_BIJI_API_KEY（见 .claude/skills/get-biji）。"
+[ -n "${GET_BIJI_API_KEY:-}" ]  || die "缺 GET_BIJI_API_KEY（见 skills/get-biji）。"
 [ -n "${GET_BIJI_CLIENT_ID:-}" ] || die "缺 GET_BIJI_CLIENT_ID（notes list 必需）。"
 have python3 || die "需要 python3。"
 

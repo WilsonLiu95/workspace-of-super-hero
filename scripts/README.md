@@ -10,8 +10,9 @@
 | --- | --- | --- | --- |
 | `pull-feishu.sh` | 飞书会话/消息 → `sources/feishu/<租户>/` | `lark-cli`（已登录） | `FEISHU_TENANT` `FEISHU_SINCE_DAYS` `FEISHU_MAX_CHATS` |
 | `pull-getnote.sh` | 得到/Biji 笔记 → `sources/getnote/` | `python3` + `lib/get_biji.py` | `GET_BIJI_API_KEY` `GET_BIJI_CLIENT_ID` `GETNOTE_SINCE_ID` |
-| `pull-wechat.sh` | 微信聊天 → `sources/wechat/` | `chatlog`（HTTP 服务） | `CHATLOG_BASE_URL` `WECHAT_SINCE_DAYS` |
+| `pull-wechat.sh` | 微信聊天 → `sources/wechat/` | 暂停默认配置；需 `chatlog`（HTTP 服务） | `CHATLOG_BASE_URL` `WECHAT_SINCE_DAYS` |
 | `pull-all.sh` | 编排上述全部，供定时器调用 | — | `PULL_SOURCES` |
+| `setup.sh` | 首次配置一键向导 / 体检 / 写入 `.env.local` | `bash` | 各集成 env |
 | `generate-image.py` | OpenAI 兼容接口生图（见 ai-image 技能） | `python3` | `AIPROXY_API_KEY` `AIPROXY_BASE_URL` |
 | `lib/common.sh` | 共享 bash 助手 | — | — |
 | `lib/get_biji.py` | Biji OpenAPI 客户端（只读 env 凭证） | `python3` | 见上 |
@@ -28,9 +29,13 @@
 ## 手动跑
 
 ```bash
+bash scripts/setup.sh wizard                  # 首次配置：初始化、体检、提示缺项、可交互写 .env.local
+bash scripts/setup.sh wizard --dry-run        # 只盘点，不写文件
+bash scripts/setup.sh doctor                  # 只体检
 scripts/pull-getnote.sh                      # 单个来源
 PULL_SOURCES="feishu getnote" scripts/pull-all.sh
-scripts/pull-all.sh                          # 全部
+scripts/pull-all.sh                          # 默认来源（feishu getnote）
+# 微信 chatlog 暂不进默认自动化；需要时：PULL_SOURCES="feishu getnote wechat" scripts/pull-all.sh
 ```
 
 ## 定时触发（三选一，当前都未启用 —— 你说"先不绑定触发器"）

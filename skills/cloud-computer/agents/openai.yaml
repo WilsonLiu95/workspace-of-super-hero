@@ -1,0 +1,4 @@
+interface:
+  display_name: "云电脑"
+  short_description: "通过 SSH 操作云电脑、部署静态网页并配置域名访问"
+  default_prompt: "Use $cloud-computer to deploy this static website to my cloud computer."

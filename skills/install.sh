@@ -10,14 +10,15 @@
 # 命令：
 #   list                            列出可安装的 skill 及版本
 #   search <关键词>                 搜索 skill
-#   install <skill>[@版本] [更多…]  安装一个或多个 skill（默认装到 ./.claude/skills/）
+#   install <skill>[@版本] [更多…]  安装一个或多个 skill（默认装到 ./skills/）
 #   update  <skill> | --all         更新（= 重新安装最新）
 #   installed                       列出当前目录已安装的 skill
+#   check-sync                      检查根 skills 与 Agent 入口软链接是否一致
 #
 # 选项（可与命令混写）：
 #   --gitee            从 Gitee 镜像拉取（默认 GitHub）
-#   --codex            同时镜像到 ./.agents/skills/（Codex 读这里）
-#   --codebuddy        同时镜像到 ./.codebuddy/skills/（腾讯 CodeBuddy 读这里）
+#   --codex            确保 ./.agents/skills -> ../skills（Codex 读这里）
+#   --workbuddy        确保 ./.workbuddy/skills -> ../skills（腾讯 WorkBuddy 读这里）
 #   --dir <path>       安装根目录（默认当前目录）
 #   --ref <branch|tag> 覆盖拉取的 git ref（调试用；默认按版本/默认分支）
 #
@@ -34,7 +35,7 @@ CODELOAD_GH="https://codeload.github.com"
 GITEE_BASE="https://gitee.com"
 
 # ---------- 选项默认值 ----------
-USE_GITEE=0; MIRROR_CODEX=0; MIRROR_CODEBUDDY=0; REF_OVERRIDE=""
+USE_GITEE=0; MIRROR_CODEX=0; MIRROR_WORKBUDDY=0; REF_OVERRIDE=""
 INSTALL_DIR="$(pwd)"
 
 _tty(){ [ -t 2 ]; }
@@ -53,7 +54,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --gitee)     USE_GITEE=1 ;;
     --codex)     MIRROR_CODEX=1 ;;
-    --codebuddy) MIRROR_CODEBUDDY=1 ;;
+    --workbuddy) MIRROR_WORKBUDDY=1 ;;
     --dir)       INSTALL_DIR="${2:?--dir 需要路径}"; shift ;;
     --ref)       REF_OVERRIDE="${2:?--ref 需要值}"; shift ;;
     -h|--help)   sed -n '2,40p' "$0" 2>/dev/null || true; exit 0 ;;
@@ -170,6 +171,32 @@ copy_file(){  # $1=src_file $2=相对目标
   log "→ $rel"
 }
 
+ensure_skill_link(){  # $1=相对软链接路径 $2=相对目标 $3=说明
+  local rel="$1" target="$2" label="$3" full
+  full="$INSTALL_DIR/$rel"
+  mkdir -p "$INSTALL_DIR/$(dirname "$rel")"
+  if [ -L "$full" ]; then
+    ln -sfn "$target" "$full"
+  elif [ -e "$full" ]; then
+    if [ -d "$full" ] && [ -z "$(find "$full" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+      rmdir "$full"
+      ln -s "$target" "$full"
+    else
+      warn "$rel 已存在且不是空目录/软链接，保留不改；请手动迁移到 skills/ 后改成软链接"
+      return 0
+    fi
+  else
+    ln -s "$target" "$full"
+  fi
+  log "→ $rel -> $target（$label）"
+}
+
+ensure_loader_links(){
+  ensure_skill_link ".claude/skills" "../skills" "Claude"
+  [ "$MIRROR_CODEX" = 1 ]     && ensure_skill_link ".agents/skills" "../skills" "Codex"
+  [ "$MIRROR_WORKBUDDY" = 1 ] && ensure_skill_link ".workbuddy/skills" "../skills" "WorkBuddy"
+}
+
 install_one(){
   local spec="$1" name version meta ref path extras envs pips deps title base
   name="${spec%@*}"; version=""
@@ -187,9 +214,8 @@ install_one(){
   log "安装 ${name}（${title}）@ $ref"
   local root; root="$(download_and_extract "$ref")"
   base="${path##*/}"
-  copy_dir "$root/$path" ".claude/skills/$base"
-  [ "$MIRROR_CODEX" = 1 ]     && copy_dir "$root/$path" ".agents/skills/$base"
-  [ "$MIRROR_CODEBUDDY" = 1 ] && copy_dir "$root/$path" ".codebuddy/skills/$base"
+  copy_dir "$root/$path" "skills/$base"
+  ensure_loader_links
   if [ -n "$extras" ]; then
     local IFS='|'; read -ra EX <<<"$extras"
     for e in "${EX[@]}"; do [ -n "$e" ] && copy_file "$root/$e" "$e"; done
@@ -197,11 +223,73 @@ install_one(){
   rm -rf "$(dirname "$root")"
   # 安装后提示
   printf '\n' >&2
-  log "✅ $name 已装好。落地：.claude/skills/$base/"
+  log "✅ $name 已装好。落地：skills/$base/"
   [ -n "$envs" ] && log "   需在 .env.local 配置：$envs"
   [ -n "$pips" ] && log "   可选 Python 依赖：pip install $pips"
   [ -n "$deps" ] && log "   系统依赖：$deps"
   log "   体检：bash scripts/setup.sh doctor   （或对外部仓库手动核对凭证）"
+}
+
+check_sync(){
+  local ok=1
+  check_one_link(){
+    local rel="$1" target="$2"
+    if [ ! -L "$INSTALL_DIR/$rel" ]; then
+      warn "$rel 不是软链接"
+      ok=0
+      return
+    fi
+    local got; got="$(readlink "$INSTALL_DIR/$rel")"
+    if [ "$got" != "$target" ]; then
+      warn "$rel 指向 $got，期望 $target"
+      ok=0
+    fi
+  }
+  check_one_link ".claude/skills" "../skills"
+  if [ -e "$INSTALL_DIR/.agents/skills" ] || [ -L "$INSTALL_DIR/.agents/skills" ]; then
+    check_one_link ".agents/skills" "../skills"
+  fi
+  if [ -e "$INSTALL_DIR/.workbuddy/skills" ] || [ -L "$INSTALL_DIR/.workbuddy/skills" ]; then
+    check_one_link ".workbuddy/skills" "../skills"
+  fi
+  INSTALL_DIR="$INSTALL_DIR" REGISTRY="$REGISTRY" python3 - <<'PY' || ok=0
+import json, os, re, sys
+from pathlib import Path
+
+root = Path(os.environ["INSTALL_DIR"])
+reg = json.loads(os.environ["REGISTRY"])
+skills = reg.get("skills", {})
+errors = []
+
+for name, meta in sorted(skills.items()):
+    path = root / meta.get("path", "") / "SKILL.md"
+    if not path.exists():
+        errors.append(f"{name}: missing {path.relative_to(root)}")
+        continue
+    text = path.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"^version:\s*(.+)$", text, re.M)
+    actual = match.group(1).strip().strip('"') if match else ""
+    expected = str(meta.get("version", ""))
+    if actual != expected:
+        errors.append(f"{name}: version {actual or '(missing)'} != registry {expected}")
+
+disk = {
+    p.parent.name
+    for p in (root / "skills").glob("*/SKILL.md")
+}
+missing = sorted(disk - set(skills))
+for name in missing:
+    errors.append(f"{name}: exists in skills/ but is missing from registry.json")
+
+if errors:
+    for error in errors:
+        print(f"[skill-install] WARN {error}", file=sys.stderr)
+    sys.exit(1)
+
+print(f"[skill-install] OK {len(skills)} skills registered and version-matched")
+PY
+  [ "$ok" = 1 ] || die "skill 同步检查失败"
+  log "skill 入口同步正常"
 }
 
 case "$CMD" in
@@ -218,19 +306,21 @@ case "$CMD" in
     if [ "${1:-}" = "--all" ]; then
       for n in $(REGISTRY="$REGISTRY" python3 -c '
 import os,json;[print(k) for k in json.loads(os.environ["REGISTRY"]).get("skills",{})]'); do
-        [ -d "$INSTALL_DIR/.claude/skills/$n" ] && install_one "$n"
+        { [ -d "$INSTALL_DIR/skills/$n" ] || [ -d "$INSTALL_DIR/.claude/skills/$n" ]; } && install_one "$n"
       done
     else
       [ $# -ge 1 ] || die "用法：update <skill> | --all"
       for s in "$@"; do install_one "$s"; done
     fi ;;
   installed)
-    log "已安装（$INSTALL_DIR/.claude/skills/）："
-    for d in "$INSTALL_DIR"/.claude/skills/*/SKILL.md; do
+    log "已安装（$INSTALL_DIR/skills/）："
+    for d in "$INSTALL_DIR"/skills/*/SKILL.md; do
       [ -f "$d" ] || continue
       n="$(basename "$(dirname "$d")")"
       v="$(grep -m1 '^version:' "$d" | sed 's/version:[[:space:]]*//' || true)"
       printf '  %-18s %s\n' "$n" "${v:-(无版本号)}"
     done ;;
-  *) die "未知命令：${CMD}（list | search | install | update | installed）" ;;
+  check-sync)
+    check_sync ;;
+  *) die "未知命令：${CMD}（list | search | install | update | installed | check-sync）" ;;
 esac

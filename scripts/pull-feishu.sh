@@ -15,7 +15,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/lib/common.sh"
 load_local_env
 
-have lark-cli || die "未安装 lark-cli：npm i -g @larksuite/cli（见 .claude/skills/feishu-cli）。"
+have lark-cli || die "未安装 lark-cli：npm i -g @larksuite/cli（见 skills/feishu-cli）。"
 have python3  || die "需要 python3。"
 
 SINCE_DAYS="${FEISHU_SINCE_DAYS:-1}"

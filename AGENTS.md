@@ -1,9 +1,12 @@
 # AGENTS.md
 
-本文件供 **Codex、腾讯 CodeBuddy 及其它非 Claude Agent** 读取——Codex 把 AGENTS.md 作为项目入口；
-**CodeBuddy 在没有 `CODEBUDDY.md` 时会自动加载本文件**（所以无需再维护一份重复的契约）。
-它和 Claude 的 `.claude/skills/` 指向**同一套实现**（`scripts/` 与各 skill 自带脚本）——实现单一、不分叉。
+本文件供 **Codex、腾讯 WorkBuddy 及其它非 Claude Agent** 读取——Codex 把 AGENTS.md 作为项目入口；
+**WorkBuddy 在没有 `WORKBUDDY.md` 时会自动加载本文件**（所以无需再维护一份重复的契约）。
+Skill 真源统一在根 `skills/`；Claude 的 `.claude/skills` 与 Codex 的 `.agents/skills` 都是指向 `../skills` 的软链接。
+它们共同调用**同一套实现**（`scripts/` 与各 skill 自带脚本）——实现单一、不分叉。
 完整工作区约定见 [`CLAUDE.md`](./CLAUDE.md)。
+
+> **交流语言：中文。** 与用户对话、进度说明、总结、解释一律用中文；代码、命令、路径、frontmatter 字段名等技术性内容保持原样。
 
 ## 这是什么
 
@@ -16,21 +19,24 @@
 | --- | --- | --- |
 | 拉飞书会话/消息 | `scripts/pull-feishu.sh` | 需 `lark-cli` 已登录 |
 | 拉得到/Get笔记 | `scripts/pull-getnote.sh` | Biji OpenAPI |
-| 拉微信 | `scripts/pull-wechat.sh` | 需 `chatlog server` 在跑 |
+| 拉微信 | `scripts/pull-wechat.sh` | 暂停默认配置；需要时手动恢复，需 `chatlog server` |
 | 一键拉全部 | `scripts/pull-all.sh` | 编排器，供定时器调用 |
 | 生成图片 | `python3 scripts/generate-image.py "<prompt>" -o assets` | OpenAI 兼容生图 |
-| 导出公众号文章 | `.claude/skills/wechat-exporter/scripts/`（扫码）→ `sources/mp/` | 交互式，需用户扫码 |
-| 拉小宇宙播客 | `.claude/skills/xiaoyuzhou/xiaoyuzhou.py`（扫码）→ `sources/social/` | 交互式，需用户扫码 |
-| 拉钉钉通讯录/文档 | `.claude/skills/dingtalk/scripts/pull-dingtalk.sh` | 自建企业内部应用；钉钉**无聊天记录 API** |
-| 拉腾讯会议录制/纪要/转写 | `.claude/skills/tencent-meeting/scripts/pull-tencent-meeting.sh` | 企业版/商业版 AKSK |
-| 拉博客/RSS | `.claude/skills/blog/scripts/pull-blog.sh` | 无需凭证；配 `BLOG_FEEDS` |
-| 首次配置 / 体检 | `bash scripts/setup.sh doctor`（或 `init`/`status`/`set KEY VALUE`） | 引导打通各集成 |
+| 导出公众号文章 | `skills/wechat-exporter/scripts/`（扫码）→ `sources/mp/` | 交互式，需用户扫码 |
+| 拉小宇宙播客 | `skills/xiaoyuzhou/xiaoyuzhou.py`（扫码）→ `sources/social/` | 交互式，需用户扫码 |
+| 拉钉钉通讯录/文档 | `skills/dingtalk/scripts/pull-dingtalk.sh` | 自建企业内部应用；钉钉**无聊天记录 API** |
+| 拉腾讯会议录制/纪要/逐字稿（个人版） | `skills/tencent-meeting/scripts/pull-tencent-meeting.sh`（官方 `tmeet` CLI，OAuth） | 先 `tmeet auth login` 扫码登录；零密钥 |
+| 拉博客/RSS | `skills/blog/scripts/pull-blog.sh` | 无需凭证；配 `BLOG_FEEDS` |
+| 托管网页到云电脑 | `skills/cloud-computer/scripts/cloud-computer.sh --dry-run deploy-static <目录> <域名>` | 需 SSH；云电脑需 Docker/Compose；DNS 用户自配 |
+| 首次配置 / 体检 | `bash scripts/setup.sh wizard`（或 `doctor`/`init`/`status`/`set KEY VALUE`） | 一键引导打通各集成 |
 | 装/更新 skill | `skills/install.sh install <name>[@版本]` | 从 Git 仓库一行装，版本按 git tag |
+| 检查 skill 同步 | `skills/install.sh check-sync` | 校验软链接、registry、frontmatter 版本 |
 
-每个能力的详细说明（前置/参数/排错）见对应 `.claude/skills/<name>/SKILL.md`——
+每个能力的详细说明（前置/参数/排错）见对应 `skills/<name>/SKILL.md`——
 那是标准 Agent Skill 格式（`name`+`description`+正文），你可以直接读：
-`feishu-cli` / `dingtalk` / `tencent-meeting` / `get-biji` / `wechat-chatlog` / `wechat-exporter` / `xiaoyuzhou` / `blog` / `ai-image` / `pull-sources` / `setup`。
+`feishu-cli` / `dingtalk` / `tencent-meeting` / `get-biji` / `wechat-chatlog` / `wechat-exporter` / `xiaoyuzhou` / `blog` / `ai-image` / `cloud-computer` / `pull-sources` / `setup`。
 
+> 微信 chatlog 暂不纳入默认配置/定时；需要恢复时手动设 `PULL_SOURCES` 加 `wechat`。
 > 公众号/小宇宙是**交互式扫码**技能：生成二维码 → 展示给用户 → 等用户扫码确认 → 再继续。
 > 不要塞进无人值守的定时任务。
 
@@ -39,8 +45,8 @@
 统一放仓库根 `.env.local`（见 `.env.example`，已被 `.gitignore` 忽略）。`scripts/*` 与各 skill 脚本会自动 `source` 它。
 飞书凭证由 `lark-cli` 自管（`~/.lark-cli`）。**不要把任何 key 写进仓库。**
 
-- **多租户**：飞书用 `lark-cli profile` + `.env.local` 里的 `FEISHU_TENANTS`（每租户一个 profile，`scripts/feishu-add-tenant.sh <名>` 加）；其它"凭证写在 .env"的来源（钉钉/腾讯会议/得到/生图）把另一套写到 `.env.<租户>.local`，运行时 `TENANT=<租户> <脚本>` 叠加。
-- **首次配置**：`bash scripts/setup.sh doctor` 体检各集成，`init` 建 `.env.local`，`set KEY VALUE` 落盘。
+- **多租户**：飞书用 `lark-cli profile` + `.env.local` 里的 `FEISHU_TENANTS`（每租户一个 profile，`scripts/feishu-add-tenant.sh <名>` 加）；其它"凭证写在 .env"的来源（钉钉/腾讯会议/得到/生图/云电脑）把另一套写到 `.env.<租户>.local`，运行时 `TENANT=<租户> <脚本>` 叠加。
+- **首次配置**：`bash scripts/setup.sh wizard` 一键引导（初始化→体检→缺项指引→可交互写 `.env.local`）；`doctor` 只体检，`init` 只建 `.env.local`，`set KEY VALUE` 只落盘单项。
 
 ## 你把拉来的数据写到哪（写入契约）
 

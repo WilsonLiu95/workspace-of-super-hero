@@ -5,6 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > **本仓库不是软件工程项目。** 这里没有 build / lint / test，没有要编译运行的程序。
 > 它是一个**个人 Co-Worker（协作伙伴）工作空间** —— 用来收集、整理、合成多来源资料，并产出交付物。
 > 你在这里扮演的是"同事/助理"，而不是"程序员"。常见动作是：归档资料、检索、合成、写作、配图、发布。
+>
+> **交流语言：中文。** 与用户对话、进度说明、总结、解释一律用中文；代码、命令、路径、frontmatter 字段名等技术性内容保持原样。
 
 ---
 
@@ -95,7 +97,7 @@ published_url:          # 仅 web/已发布时填写
 | 本地文档 | `deliverables/local/` | 终稿直接存这里，即最终产物 |
 | 线上 HTML | `deliverables/web/` | 产出**自包含**的 HTML，再发布到你自选的静态托管 |
 
-**Web 发布（采用者自配）：** 本模板不绑定任何托管账号。选一个静态托管（Vercel / Netlify / Cloudflare Pages / GitHub Pages / 对象存储 COS·OSS·S3 / 或 rsync 到自己的服务器），把你的**发布命令**填到下面这一行，之后 Agent 就照此发布：
+**Web 发布（采用者自配）：** 本模板不绑定任何托管账号。选一个静态托管（Vercel / Netlify / Cloudflare Pages / GitHub Pages / 对象存储 COS·OSS·S3 / 云电脑 `cloud-computer` / 或 rsync 到自己的服务器），把你的**发布命令**填到下面这一行，之后 Agent 就照此发布：
 
 ```
 # TODO(adopter): 在此填写你的发布命令，例如
@@ -108,7 +110,7 @@ published_url:          # 仅 web/已发布时填写
 
 ## 7. 常用操作（非代码）
 
-- **拉取来源**：`scripts/pull-all.sh`（或 `pull-feishu`/`pull-getnote`/`pull-wechat`）把已脚本化来源拉进 `sources/`（见 §8、`pull-sources` 技能）。公众号和小宇宙目前走链接/RSS/导出归档规则。
+- **拉取来源**：`scripts/pull-all.sh`（或 `pull-feishu`/`pull-getnote`/`pull-wechat`）把已脚本化来源拉进 `sources/`（见 §8、`pull-sources` 技能）。公众号和小宇宙走对应的交互式按需技能。
 - **归档 inbox**：读 `sources/inbox/` 里的新文件 → 判断来源 → 移动到对应来源目录 → 补 frontmatter。
 - **起草交付物**：依据 `sources:` 选定的底稿，在 `workstreams/<主题>/` 里打草稿；定稿移到 `deliverables/<去向>/`。
 - **配图**：用内置 `ai-image` 技能（`scripts/generate-image.py`）为交付物生成插图，存到 `assets/` 再引用（需配置 key，见 §8）。
@@ -117,35 +119,37 @@ published_url:          # 仅 web/已发布时填写
 ## 8. 内置技能与脚本（三 Agent 同源 · 带版本 · 可分发）
 
 **三 Agent 同源**：实现的真正逻辑在 `scripts/` 与各 skill 自带的 `scripts/`；三个 Agent 都**调同一批脚本**，不分叉——
-- **Claude** 读 `.claude/skills/`（自动发现，标准 Agent Skill 格式）；
-- **Codex** 读根 `AGENTS.md`；
-- **腾讯 CodeBuddy** 在没有 `CODEBUDDY.md` 时**自动加载 `AGENTS.md`**（故无需重复维护），skill 可经 `skills/install.sh --codebuddy` 镜像到 `.codebuddy/skills/`。
+- Skill 真源统一在根 `skills/<name>/`；
+- **Claude** 读 `.claude/skills/ -> ../skills`（自动发现，标准 Agent Skill 格式）；
+- **Codex** 读根 `AGENTS.md`，并可通过 `.agents/skills -> ../skills` 发现同一批 skill；
+- **腾讯 WorkBuddy** 在没有 `WORKBUDDY.md` 时**自动加载 `AGENTS.md`**（故无需重复维护），如需 skill 目录则用 `.workbuddy/skills -> ../skills`。
 
 每个 `SKILL.md` 的 frontmatter 带 `version`（语义化版本）。两个**交互式按需**技能（`wechat-exporter` 公众号、`xiaoyuzhou` 小宇宙）需扫码登录，不纳入每日 `pull-all`。**均不含任何密钥/账号**，采用者自带凭证（统一放仓库根 `.env.local`，见 `.env.example`）。
 
 | 技能 | 实现脚本 | 采用者需配置 |
 | --- | --- | --- |
-| `setup`（首次引导/体检） | `scripts/setup.sh`（status/init/doctor/set） | 无；带你勾选并打通各集成 |
+| `setup`（首次引导/体检） | `scripts/setup.sh`（wizard/status/init/doctor/set） | 无；带你勾选并打通各集成 |
 | `pull-sources` | `scripts/pull-all.sh` | 见下各来源（`PULL_SOURCES` 可纳入新源） |
 | `feishu-cli`（飞书·多租户） | `scripts/pull-feishu.sh` + `lark-cli` + `feishu-add-tenant.sh` | `npm i -g @larksuite/cli`；每租户 `scripts/feishu-add-tenant.sh <名>`；`FEISHU_TENANTS` |
 | `dingtalk`（钉钉·通讯录/文档） | 技能内 `pull-dingtalk.sh` + `dingtalk_client.py`（仅标准库） | `DINGTALK_APP_KEY` / `DINGTALK_APP_SECRET`；管理员授读权限（**无聊天记录 API**） |
-| `tencent-meeting`（腾讯会议·录制/纪要/转写） | 技能内 `pull-tencent-meeting.sh` + `tmeeting_client.py`（标准库） | 企业版自建应用 AKSK：`TENCENT_MEETING_*`（APP_ID/SDK_ID/SECRET_ID/SECRET_KEY/OPERATOR_ID） |
+| `tencent-meeting`（腾讯会议·个人版·录制/AI纪要/逐字稿） | 官方 `tmeet` CLI（OAuth，零密钥）→ `pull-tencent-meeting.sh` | `npm i -g @tencentcloud/tmeet` + `tmeet auth login` 扫码登录；**无需任何 .env 凭证**（本工作区不含企业版 AKSK 路径） |
 | `get-biji`（得到/Get笔记） | `scripts/pull-getnote.sh` + `scripts/lib/get_biji.py` | `GET_BIJI_API_KEY` / `GET_BIJI_CLIENT_ID`（可选 `GET_BIJI_DEFAULT_TOPIC_ID`） |
-| `wechat-chatlog`（微信聊天） | `scripts/pull-wechat.sh` + `chatlog` | 装 `chatlog`，跑 `chatlog server` |
+| `wechat-chatlog`（微信聊天） | `scripts/pull-wechat.sh` + `chatlog` | 暂停默认配置/定时；需要时手动恢复，装 `chatlog` 并跑 `chatlog server` |
 | `wechat-exporter`（微信公众号·扫码） | 技能内 `scripts/`（登录公众平台）→ `sources/mp/` | `pip install requests openpyxl`；交互式 |
 | `xiaoyuzhou`（小宇宙播客·扫码） | 技能内 `xiaoyuzhou.py`（登录）→ `sources/social/` | `pip install requests qrcode pillow`；`XIAOYUZHOU_OUTPUT_DIR` |
 | `blog`（博客/RSS） | 技能内 `pull-blog.sh` + `blog_client.py`（标准库可跑） | `BLOG_FEEDS`（无需凭证；可选 `pip install feedparser trafilatura markdownify`） |
 | `ai-image` | `scripts/generate-image.py` | `AIPROXY_API_KEY` / `AIPROXY_BASE_URL` |
+| `cloud-computer`（云电脑·SSH 托管网页） | 技能内 `cloud-computer.sh`（SSH / Caddy / Docker Compose） | `CLOUD_COMPUTER_HOST` / `CLOUD_COMPUTER_USER` / `CLOUD_COMPUTER_SSH_KEY` 或 `CLOUD_COMPUTER_PASSWORD`；远端 Docker+Compose；域名 DNS 自配 |
 
-**多租户**：飞书走 `lark-cli profile` + `FEISHU_TENANTS`（每租户一个 profile）；其它"凭证在 .env"的来源（钉钉/腾讯会议/得到/生图）把另一套写到 `.env.<租户>.local`，运行时 `TENANT=<租户> <脚本>` 在默认 `.env.local` 之上叠加。
+**多租户**：飞书走 `lark-cli profile` + `FEISHU_TENANTS`（每租户一个 profile）；其它"凭证在 .env"的来源（钉钉/腾讯会议/得到/生图/云电脑）把另一套写到 `.env.<租户>.local`，运行时 `TENANT=<租户> <脚本>` 在默认 `.env.local` 之上叠加。
 
 **版本与分发**：`skills/registry.json` 是清单，`skills/install.sh` 是一行安装器——在任意目标仓库
-`curl -fsSL https://raw.githubusercontent.com/WilsonLiu95/workspace-of-super-hero/main/skills/install.sh | bash -s -- install <skill>[@版本] [--codex --codebuddy]`。
-版本按 `<skill>-v<版本>` 的 git tag 冻结；不带 `@版本` 拉 main 最新。维护/发布流程见 `skills/README.md`。
+`curl -fsSL https://raw.githubusercontent.com/WilsonLiu95/workspace-of-super-hero/main/skills/install.sh | bash -s -- install <skill>[@版本] [--codex --workbuddy]`。
+安装器把 skill 放到根 `skills/<name>/`，并确保 Agent 入口软链接存在。版本按 `<skill>-v<版本>` 的 git tag 冻结；不带 `@版本` 拉 main 最新。维护/发布流程见 `skills/README.md`，同步校验用 `skills/install.sh check-sync`。
 
-**首次配置**：新机器导入后 → `bash scripts/setup.sh doctor` 体检，或在 Agent 里说「帮我配置工作区」走 `setup` 引导（勾选集成→逐项填 `.env.local`→体检）。
+**首次配置**：新机器导入后 → `bash scripts/setup.sh wizard` 一键引导（初始化→体检→缺项指引→可交互写 `.env.local`）；只体检用 `bash scripts/setup.sh doctor`，或在 Agent 里说「帮我配置工作区」走 `setup` 引导。
 
-**定时**：把 `scripts/pull-all.sh` 挂到 Codex `automation.toml` / Claude `/schedule` / 本地 `cron`，示例见 `scripts/README.md`。当前未绑定触发器。
+**定时**：把 `scripts/pull-all.sh` 挂到 Codex `automation.toml` / Claude `/schedule` / 本地 `cron`，示例见 `scripts/README.md`。当前未绑定触发器；微信 chatlog 暂不进默认自动化，需要时用 `PULL_SOURCES` 手动纳入。
 
 ## 9. 让它成为你的（Make it yours）
 
@@ -155,7 +159,7 @@ published_url:          # 仅 web/已发布时填写
 2. 在 `sources/feishu/` 下按你的真实**租户**建目录。
 3. 接入你自己的数据源/外部 Agent（飞书 Codex、导出脚本等），让它们按 §5 契约写入。
 4. 配置 §6 的 **Web 发布命令**。
-5. `cp .env.example .env.local` 填入各来源凭证（§8）；飞书另需 `lark-cli auth login`、微信另需 `chatlog server`。
+5. 跑 `bash scripts/setup.sh wizard` 填入各来源凭证（§8）；飞书另需 `lark-cli auth login`。微信 chatlog 当前暂停默认配置，需要时再单独恢复。
 6. 如需每日自动拉取，把 `scripts/pull-all.sh` 挂到定时器（见 `scripts/README.md`）。
 
 ## 10. 敏感与隐私（重要）
@@ -166,6 +170,6 @@ published_url:          # 仅 web/已发布时填写
 
 ## 11. 环境能力（因人而异）
 
-- **随模板自带（见 §8）**：`setup` / `pull-sources` / `feishu-cli` / `dingtalk` / `tencent-meeting` / `get-biji` / `wechat-chatlog` / `wechat-exporter` / `xiaoyuzhou` / `blog` / `ai-image` 十一个技能 + `scripts/` + `skills/`（清单与一行安装器），随仓库分享，三 Agent（Claude/Codex/CodeBuddy）通用。但都需采用者**自带凭证/工具**（飞书/钉钉/腾讯会议应用、Biji key、chatlog、公众号/小宇宙扫码登录、生图 key；博客无需凭证）才能真正调用。
-- **不随模板、需你环境另配**：特定静态托管账号（CloudBase/Vercel/…）、`chatlog`/`lark-cli`/CodeBuddy CLI 等二进制的安装。用之前先确认在你的环境可用；不可用就走手动/导出路径。
-- **首次导入**：先跑 `bash scripts/setup.sh doctor` 看缺什么，或在 Agent 里说「帮我配置工作区」走 `setup` 引导。
+- **随模板自带（见 §8）**：`setup` / `pull-sources` / `feishu-cli` / `dingtalk` / `tencent-meeting` / `get-biji` / `wechat-chatlog` / `wechat-exporter` / `xiaoyuzhou` / `blog` / `ai-image` / `cloud-computer` 十二个技能 + `scripts/` + `skills/`（清单与一行安装器），随仓库分享，三 Agent（Claude/Codex/WorkBuddy）通用。但部分技能仍需采用者**自带凭证/工具**（飞书/钉钉/腾讯会议应用、Biji key、chatlog、公众号/小宇宙扫码登录、生图 key、云电脑 SSH 与 Docker/Compose；博客无需凭证）才能真正调用。
+- **不随模板、需你环境另配**：特定静态托管账号（CloudBase/Vercel/…）、`chatlog`/`lark-cli`/WorkBuddy CLI 等二进制的安装。`chatlog` 当前暂停默认配置；用之前先确认在你的环境可用，不可用就走手动/导出路径。
+- **首次导入**：先跑 `bash scripts/setup.sh wizard` 一键引导；无交互预览用 `bash scripts/setup.sh wizard --dry-run`。

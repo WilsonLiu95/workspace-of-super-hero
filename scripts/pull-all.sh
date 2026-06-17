@@ -2,7 +2,7 @@
 # 编排器：依次跑各来源的拉取脚本，供定时任务调用。
 # 单个来源失败不中断其它来源；最后汇总。可用 PULL_SOURCES 限定来源。
 #
-#   scripts/pull-all.sh                      # 拉全部（feishu getnote wechat）
+#   scripts/pull-all.sh                      # 拉默认来源（feishu getnote）
 #   PULL_SOURCES="feishu getnote" scripts/pull-all.sh
 SCRIPT_NAME="pull-all"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
@@ -11,14 +11,17 @@ load_local_env
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 默认拉核心来源；用 PULL_SOURCES 覆盖，也可纳入自包含的新 skill，例：
 #   PULL_SOURCES="feishu getnote dingtalk blog" scripts/pull-all.sh
-SOURCES_LIST="${PULL_SOURCES:-feishu getnote wechat}"
+# 微信 chatlog 先不纳入默认自动化；如需恢复，手动设 PULL_SOURCES 加 wechat。
+SOURCES_LIST="${PULL_SOURCES:-feishu getnote}"
 
 # 解析来源 → 脚本路径：先看顶层 scripts/pull-<s>.sh，再看自包含 skill 的脚本
 resolve_script() {
   local s="$1"
   [ -f "$HERE/pull-$s.sh" ] && { printf '%s\n' "$HERE/pull-$s.sh"; return 0; }
-  local sk="$WORKSPACE_ROOT/.claude/skills/$s/scripts/pull-$s.sh"
+  local sk="$WORKSPACE_ROOT/skills/$s/scripts/pull-$s.sh"
   [ -f "$sk" ] && { printf '%s\n' "$sk"; return 0; }
+  local legacy="$WORKSPACE_ROOT/.claude/skills/$s/scripts/pull-$s.sh"
+  [ -f "$legacy" ] && { printf '%s\n' "$legacy"; return 0; }
   return 1
 }
 
